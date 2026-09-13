@@ -132,6 +132,13 @@
   .faq dt{margin:0 0 4px;font-weight:600;font-size:14.5px}
   .faq dd{margin:0;font-size:13.5px;line-height:1.5;color:var(--dim)}
 
+  .breakdown-title{font-size:11.5px;color:var(--dim);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.05em}
+  .breakdown{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .breakdown-row{display:flex;justify-content:space-between;gap:10px;padding:9px 14px;font-size:13px;border-bottom:1px solid var(--line)}
+  .breakdown-row:last-child{border-bottom:0}
+  .breakdown-row span{color:var(--dim)}
+  .breakdown-row b{font-weight:600}
+
   .app-row{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:10px}
   .app-row .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
   .app-row .top b{font-size:14px}
@@ -181,42 +188,104 @@
     <p class="tagline" id="tagline">Home loans powered by automatic deed checks. Secure your title, get approved, and skip the crypto complexity: "No wallet, gas, or seed phrase needed"</p>
   </header>
 
-  <div class="hero-grid">
-    <section class="card" id="loginCard">
-      <h2>1. SignUp/Login</h2>
-      <p class="hint">Just an email. We create and fund your loan account behind the scenes — you'll never see a wallet address.</p>
-      <div id="loginStep1">
-        <label for="email">Email</label>
-        <input id="email" type="email" placeholder="amara@example.com" autocomplete="email">
-        <button id="sendCodeBtn">Send me a code</button>
-        <p class="error-text" id="loginError1" hidden></p>
-      </div>
-      <div id="loginStep2" hidden>
-        <p class="muted" id="devCodeHint"></p>
-        <label for="otp">6-digit code</label>
-        <input id="otp" inputmode="numeric" maxlength="6" placeholder="123456" class="mono tnum">
-        <button id="verifyBtn">Verify &amp; continue</button>
-        <p class="error-text" id="loginError2" hidden></p>
-      </div>
-      <div id="loginDone" hidden>
-        <div class="status-line"><span class="dot ok"></span><span>Signed in — your loan account is ready.</span></div>
-      </div>
-    </section>
+  <div id="landingView">
+    <div class="hero-grid">
+      <section class="card" id="loginCard">
+        <h2>1. SignUp/Login</h2>
+        <p class="hint">Just an email. We create and fund your loan account behind the scenes — you'll never see a wallet address.</p>
+        <div id="loginStep1">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="amara@example.com" autocomplete="email">
+          <button id="sendCodeBtn">Send me a code</button>
+          <p class="error-text" id="loginError1" hidden></p>
+        </div>
+        <div id="loginStep2" hidden>
+          <p class="muted" id="devCodeHint"></p>
+          <label for="otp">6-digit code</label>
+          <input id="otp" inputmode="numeric" maxlength="6" placeholder="123456" class="mono tnum">
+          <button id="verifyBtn">Verify &amp; continue</button>
+          <p class="error-text" id="loginError2" hidden></p>
+        </div>
+      </section>
 
-    <section class="card">
-      <h2>How Solum works</h2>
-      <ol class="steps">
-        <li><b>A deed gets pledged.</b> <span>Someone locks a property deed as collateral for a loan on an unrelated platform, on Ethereum.</span></li>
-        <li><b>Attestcoin proves it, trustlessly.</b> <span>No oracle, no partnership — Solum verifies the real transaction with a cryptographic proof.</span></li>
-        <li><b>You apply here.</b> <span>Before approving your mortgage, Solum checks that same deed against every pledge it has verified.</span></li>
-        <li><b>Clean or conflicting.</b> <span>Approved instantly if it's clean; declined — and told why — if it's already pledged elsewhere.</span></li>
-      </ol>
-    </section>
+      <section class="card">
+        <h2>How Solum works</h2>
+        <ol class="steps">
+          <li><b>A deed gets pledged.</b> <span>Someone locks a property deed as collateral for a loan on an unrelated platform, on Ethereum.</span></li>
+          <li><b>Attestcoin proves it, trustlessly.</b> <span>No oracle, no partnership — Solum verifies the real transaction with a cryptographic proof.</span></li>
+          <li><b>You apply here.</b> <span>Before approving your mortgage, Solum checks that same deed against every pledge it has verified.</span></li>
+          <li><b>Clean or conflicting.</b> <span>Approved instantly if it's clean; declined — and told why — if it's already pledged elsewhere.</span></li>
+        </ol>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <h2>Check a status</h2>
+        <p class="hint">Anyone can look up an application number — no sign-in needed, same as texting "STATUS &lt;number&gt;".</p>
+        <div class="row">
+          <input id="statusId" type="number" min="1" placeholder="Application #" class="mono tnum">
+          <button class="ghost" id="checkStatusBtn" style="margin-top:0">Check</button>
+        </div>
+        <div id="statusResult" hidden></div>
+      </section>
+
+      <section class="card">
+        <h2>FAQ</h2>
+        <dl class="faq">
+          <div>
+            <dt>Do I need a crypto wallet to use Solum?</dt>
+            <dd>No. Sign in with just an email — Solum creates and funds a loan account for you behind the scenes. You never see a wallet address, gas, or a seed phrase.</dd>
+          </div>
+          <div>
+            <dt>How does Solum know my deed isn't pledged elsewhere?</dt>
+            <dd>Through the Attestcoin Protocol: a cryptographic proof that a specific transaction happened on another chain. No oracle, no data-sharing agreement with the other platform — Solum verifies it directly.</dd>
+          </div>
+          <div>
+            <dt>What happens if my deed is already pledged?</dt>
+            <dd>Your application is declined instantly, with the reason stated in plain English. Nothing is ever silently approved.</dd>
+          </div>
+          <div>
+            <dt>Is this real money?</dt>
+            <dd>No — this is a testnet build for the BUIDL CTC 2026 Fall hackathon on Creditcoin. All values, deeds, and platforms in the demo are illustrative.</dd>
+          </div>
+          <div>
+            <dt>Which chains does this run on?</dt>
+            <dd>Ethereum Sepolia for the collateral-pledge registry, and Creditcoin's CC3 testnet for the mortgage decision itself — connected by the Attestcoin Protocol.</dd>
+          </div>
+          <div>
+            <dt>What actually happens to the loan money after approval?</dt>
+            <dd>An approved application disburses testnet tCTC to your Solum account — 1 tCTC per 100,000 of loan amount you entered, illustrative only. You can see the balance and withdraw it to any address you hold, so the loan isn't just a status flag.</dd>
+          </div>
+          <div>
+            <dt>How is my repayment schedule calculated?</dt>
+            <dd>Illustrative only: every approved loan uses a flat demo term (12 months) and a flat demo APR (5%) to compute a monthly payment, total interest, and payoff date — the same way a real amortization breakdown reads, but with fixed demo assumptions instead of real underwriting.</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section class="links-row">
+        <a class="link-btn" href="https://github.com/ibnweb3/solum" target="_blank" rel="noopener">View source on GitHub</a>
+        <a class="link-btn gold" href="https://x.com/ibnweb3" id="contactLink" target="_blank" rel="noopener">Message us on X</a>
+      </section>
+    </div>
   </div>
 
-  <div class="stack">
-    <section class="card" id="applyCard" hidden>
-      <h2>2. Apply for a mortgage</h2>
+  <div class="stack" id="dashboardView" hidden>
+    <section class="card">
+      <div class="status-line"><span class="dot ok"></span><span>Signed in — here's your Solum account.</span></div>
+      <h2 style="margin-top:14px">Your account</h2>
+      <div class="status-line"><span class="muted">Address</span><span class="mono" id="acctAddress" style="font-size:12px"></span></div>
+      <div class="status-line"><span class="muted">Balance</span><span class="mono tnum" id="acctBalance"></span></div>
+      <label for="withdrawAddress">Withdraw to a wallet address you hold</label>
+      <input id="withdrawAddress" type="text" placeholder="0x...">
+      <button class="ghost" id="withdrawBtn">Withdraw</button>
+      <p class="error-text" id="withdrawError" hidden></p>
+      <div id="withdrawResult" hidden></div>
+    </section>
+
+    <section class="card" id="applyCard">
+      <h2>Apply for a mortgage</h2>
       <p class="hint">Upload your property's title deed, or pick one below. Two samples are provided so anyone can try both outcomes:
         <a href="deeds/amara-rental-deed.svg" download>Amara's Rental (pledged elsewhere)</a> ·
         <a href="deeds/clean-deed.svg" download>Meridian Court (clean)</a>
@@ -244,65 +313,12 @@
       <div id="decision" hidden></div>
     </section>
 
-    <section class="card" id="dashboardCard" hidden>
-      <h2>Your Solum dashboard</h2>
-      <p class="hint">Your account, and every mortgage application you've submitted.</p>
-      <div class="status-line"><span class="muted">Account address</span><span class="mono" id="acctAddress" style="font-size:12px"></span></div>
-      <div class="status-line"><span class="muted">Balance</span><span class="mono tnum" id="acctBalance"></span></div>
-      <label for="withdrawAddress">Withdraw to a wallet address you hold</label>
-      <input id="withdrawAddress" type="text" placeholder="0x...">
-      <button class="ghost" id="withdrawBtn">Withdraw</button>
-      <p class="error-text" id="withdrawError" hidden></p>
-      <div id="withdrawResult" hidden></div>
-
-      <h2 style="margin-top:22px">Your applications</h2>
+    <section class="card">
+      <h2>Your applications</h2>
       <div id="applicationsList" class="muted">No applications yet.</div>
     </section>
 
-    <section class="card">
-      <h2>Check a status</h2>
-      <p class="hint">Anyone can look up an application number — no sign-in needed, same as texting "STATUS &lt;number&gt;".</p>
-      <div class="row">
-        <input id="statusId" type="number" min="1" placeholder="Application #" class="mono tnum">
-        <button class="ghost" id="checkStatusBtn" style="margin-top:0">Check</button>
-      </div>
-      <div id="statusResult" hidden></div>
-    </section>
-
-    <section class="card">
-      <h2>FAQ</h2>
-      <dl class="faq">
-        <div>
-          <dt>Do I need a crypto wallet to use Solum?</dt>
-          <dd>No. Sign in with just an email — Solum creates and funds a loan account for you behind the scenes. You never see a wallet address, gas, or a seed phrase.</dd>
-        </div>
-        <div>
-          <dt>How does Solum know my deed isn't pledged elsewhere?</dt>
-          <dd>Through the Attestcoin Protocol: a cryptographic proof that a specific transaction happened on another chain. No oracle, no data-sharing agreement with the other platform — Solum verifies it directly.</dd>
-        </div>
-        <div>
-          <dt>What happens if my deed is already pledged?</dt>
-          <dd>Your application is declined instantly, with the reason stated in plain English. Nothing is ever silently approved.</dd>
-        </div>
-        <div>
-          <dt>Is this real money?</dt>
-          <dd>No — this is a testnet build for the BUIDL CTC 2026 Fall hackathon on Creditcoin. All values, deeds, and platforms in the demo are illustrative.</dd>
-        </div>
-        <div>
-          <dt>Which chains does this run on?</dt>
-          <dd>Ethereum Sepolia for the collateral-pledge registry, and Creditcoin's CC3 testnet for the mortgage decision itself — connected by the Attestcoin Protocol.</dd>
-        </div>
-        <div>
-          <dt>What actually happens to the loan money after approval?</dt>
-          <dd>An approved application disburses testnet tCTC to your Solum account — 1 tCTC per 100,000 of loan amount you entered, illustrative only. You can see the balance and withdraw it to any address you hold, so the loan isn't just a status flag.</dd>
-        </div>
-      </dl>
-    </section>
-
-    <section class="links-row">
-      <a class="link-btn" href="https://github.com/ibnweb3/solum" target="_blank" rel="noopener">View source on GitHub</a>
-      <a class="link-btn gold" href="https://x.com/ibnweb3" id="contactLink" target="_blank" rel="noopener">Message us on X</a>
-    </section>
+    <div style="text-align:center"><button class="ghost" id="signOutBtn">Sign out</button></div>
   </div>
 
   <footer>Solum — built on the <a href="https://docs.attestcoin.org/" target="_blank" rel="noopener">Attestcoin Protocol</a> · Creditcoin CC3 testnet</footer>
@@ -405,10 +421,7 @@
     $('verifyBtn').disabled = true;
     try {
       await api('/api/login/verify', { method: 'POST', body: JSON.stringify({ email, otp }) });
-      hide($('loginStep2'));
-      show($('loginDone'));
-      show($('applyCard'));
-      show($('dashboardCard'));
+      enterDashboard();
       await refreshDashboard();
     } catch (err) {
       $('loginError2').textContent = 'That code is wrong or expired.';
@@ -416,6 +429,31 @@
     } finally {
       $('verifyBtn').disabled = false;
     }
+  });
+
+  function enterDashboard() {
+    hide($('landingView'));
+    show($('dashboardView'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function leaveDashboard() {
+    hide($('dashboardView'));
+    show($('landingView'));
+    hide($('loginStep2'));
+    show($('loginStep1'));
+    $('email').value = '';
+    $('otp').value = '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  $('signOutBtn').addEventListener('click', async () => {
+    try {
+      await api('/api/logout', { method: 'POST' });
+    } catch {
+      /* clearing the cookie is best-effort; leave the dashboard either way */
+    }
+    leaveDashboard();
   });
 
   // Formats a wei-string as a decimal tCTC string without losing precision to float rounding.
@@ -446,6 +484,37 @@
 
   const DEED_NAMES = { 1: "Amara's Rental", 2: 'Meridian Court Residence' };
 
+  // Illustrative amortization only — see the FAQ. Fixed demo term/APR, applied to whatever was
+  // actually disbursed, so the numbers here always match the real on-chain disbursement.
+  const LOAN_TERM_MONTHS = 12;
+  const ILLUSTRATIVE_APR_PCT = 5;
+
+  function computeBreakdown(disbursedWeiStr) {
+    const principal = Number(formatWei(disbursedWeiStr, 6));
+    const totalInterest = principal * (ILLUSTRATIVE_APR_PCT / 100) * (LOAN_TERM_MONTHS / 12);
+    const totalRepayment = principal + totalInterest;
+    const monthlyPayment = totalRepayment / LOAN_TERM_MONTHS;
+    const payoffDate = new Date();
+    payoffDate.setMonth(payoffDate.getMonth() + LOAN_TERM_MONTHS);
+    return { principal, totalInterest, totalRepayment, monthlyPayment, payoffDate };
+  }
+
+  function renderBreakdown(disbursedWeiStr) {
+    const b = computeBreakdown(disbursedWeiStr);
+    const payoff = b.payoffDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long' });
+    return `
+      <p class="breakdown-title">Repayment breakdown (illustrative)</p>
+      <div class="breakdown">
+        <div class="breakdown-row"><span>Principal disbursed</span><b>${b.principal.toFixed(4)} tCTC</b></div>
+        <div class="breakdown-row"><span>Term</span><b>${LOAN_TERM_MONTHS} months</b></div>
+        <div class="breakdown-row"><span>Demo APR</span><b>${ILLUSTRATIVE_APR_PCT}%</b></div>
+        <div class="breakdown-row"><span>Monthly payment</span><b>${b.monthlyPayment.toFixed(4)} tCTC</b></div>
+        <div class="breakdown-row"><span>Total interest</span><b>${b.totalInterest.toFixed(4)} tCTC</b></div>
+        <div class="breakdown-row"><span>Total to repay</span><b>${b.totalRepayment.toFixed(4)} tCTC</b></div>
+        <div class="breakdown-row"><span>Estimated payoff</span><b>${payoff}</b></div>
+      </div>`;
+  }
+
   function renderApplicationRow(app) {
     const disbursed = BigInt(app.disbursedWei || '0');
     const repaid = BigInt(app.repaidWei || '0');
@@ -468,12 +537,15 @@
          </div>`
       : '';
 
+    const breakdown = isApproved && disbursed > 0n ? renderBreakdown(app.disbursedWei) : '';
+
     return `
       <div class="app-row">
         <div class="top"><b>Application #${app.applicationId}</b><span class="muted">${new Date(app.created).toLocaleDateString()}</span></div>
         <p class="deed">${deedLabel}${app.deedFileName ? ` &middot; uploaded <span class="mono">${app.deedFileName}</span>` : ''} &middot; loan ${app.loanAmount}</p>
         ${statusLine}
         ${repayControl}
+        ${breakdown}
       </div>`;
   }
 
@@ -543,7 +615,7 @@
         <p class="headline">${approved ? 'Approved' : 'Declined'} — application #${result.applicationId}</p>
         <p>${result.plainEnglish}</p>
         <p class="tx muted">Verified on-chain, tx <span class="mono">${result.txHash.slice(0, 10)}…${result.txHash.slice(-6)}</span></p>
-        ${result.disbursement ? `<p class="tx muted">Loan disbursed: ${formatWei(result.disbursement.amountWei)} tCTC (illustrative demo amount — see FAQ)</p>` : ''}
+        ${result.disbursement ? `<p class="tx muted">Loan disbursed: ${formatWei(result.disbursement.amountWei)} tCTC</p>${renderBreakdown(result.disbursement.amountWei)}` : ''}
       `;
       show(decision);
       await refreshDashboard();

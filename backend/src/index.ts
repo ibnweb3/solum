@@ -1,7 +1,8 @@
 /**
  * Solum backend Worker. Routes:
  *   POST /api/login/start    {email} -> {devCode}                  (mocked OTP, see auth/session.ts)
- *   POST /api/login/verify   {email, otp} -> sets session cookie
+ *   POST /api/login/verify   {email, otp} -> sets session cookie, creates the relayer wallet
+ *   POST /api/logout         -> clears the session cookie
  *   POST /api/apply          {deedId, propertyValueUsd, loanAmount, deedFileName?} -> plain-English decision
  *   GET  /api/status/:id     -> plain-English status (also used by the SMS bridge)
  *   GET  /api/my-applications -> the logged-in user's full activity ledger (status, deed, repayment)
@@ -42,6 +43,7 @@ export default {
     try {
       if (url.pathname === "/api/login/start" && request.method === "POST") return handleLoginStart(request, env);
       if (url.pathname === "/api/login/verify" && request.method === "POST") return handleLoginVerify(request, env);
+      if (url.pathname === "/api/logout" && request.method === "POST") return handleLogout(request, env);
       if (url.pathname === "/api/apply" && request.method === "POST") return handleApply(request, env);
       if (url.pathname === "/api/my-applications" && request.method === "GET") return handleMyApplications(request, env);
       if (url.pathname === "/api/account" && request.method === "GET") return handleAccount(request, env);
@@ -98,12 +100,28 @@ async function handleLoginVerify(request: Request, env: Env): Promise<Response> 
   const ok = await registry.verifyLogin(hash, otp);
   if (!ok) return json({ error: "invalid_or_expired_code" }, { status: 401 });
 
+  // Create (and fund) the relayer wallet right away, not on first apply — so the borrower's
+  // account is real and visible in their dashboard the moment they sign in, not only after
+  // their first mortgage application.
+  await getOrCreateRelayerWallet(env, hash);
+
   const cookieValue = await signSession(env, hash);
   return json(
     { ok: true },
     {
       headers: {
         "Set-Cookie": `${SESSION_COOKIE_NAME}=${encodeURIComponent(cookieValue)}; Path=/; HttpOnly; SameSite=Lax`,
+      },
+    },
+  );
+}
+
+async function handleLogout(_request: Request, _env: Env): Promise<Response> {
+  return json(
+    { ok: true },
+    {
+      headers: {
+        "Set-Cookie": `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`,
       },
     },
   );
