@@ -56,27 +56,50 @@
   }
   .tagline{margin:0;font-size:18px;color:var(--text);max-width:48ch;
     text-shadow:0 1px 3px rgba(0,0,0,.9),0 2px 18px rgba(0,0,0,.75)}
+  .tagline .tw{display:inline-block}
+  .tagline .tc{display:inline-block;opacity:0;transform:translateY(5px) scale(.4);
+    animation:typePop .32s cubic-bezier(.2,1.7,.4,1) forwards;
+    animation-delay:calc(var(--i) * 20ms)}
+  @keyframes typePop{
+    0%{opacity:0;transform:translateY(5px) scale(.4)}
+    55%{opacity:1;transform:translateY(-2px) scale(1.22)}
+    100%{opacity:1;transform:none}
+  }
+  .type-cursor{display:inline-block;width:2px;height:1em;margin-left:2px;background:var(--gold);
+    vertical-align:-3px;animation:blink .9s steps(1) infinite}
+  .type-cursor.done{animation:none;opacity:0;transition:opacity .5s ease .1s}
+  @keyframes blink{50%{opacity:0}}
 
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin:16px 0}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin:16px 0;
+    transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}
   .card h2{margin:0 0 4px;font-size:15px;font-weight:600}
   .card .hint{margin:0 0 14px;font-size:13px;color:var(--dim)}
+  @media (hover:hover){
+    .card:hover{border-color:var(--send-line);box-shadow:0 14px 34px -20px rgba(0,0,0,.7);transform:translateY(-1px)}
+  }
 
   label{display:block;font-size:12.5px;color:var(--dim);margin:12px 0 6px}
   label:first-of-type{margin-top:0}
   input,select{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:10px;
-    padding:11px 12px;color:var(--text);font-size:15px;outline:none}
-  input:focus,select:focus{border-color:var(--gold)}
+    padding:11px 12px;color:var(--text);font-size:15px;outline:none;
+    transition:border-color .15s ease,box-shadow .15s ease}
+  input:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(232,163,23,.16)}
 
   .row{display:flex;gap:10px}
   .row > *{flex:1}
 
   button{appearance:none;border:0;cursor:pointer;background:var(--gold);color:#000;
     font:600 14.5px/1 -apple-system,system-ui,sans-serif;padding:12px 18px;border-radius:10px;
-    margin-top:16px;transition:transform .12s ease,opacity .12s ease}
-  button:active{transform:scale(.98)}
+    margin-top:16px;transition:transform .15s ease,opacity .12s ease,box-shadow .15s ease,filter .15s ease}
+  button:active:not(:disabled){transform:scale(.96)}
   button:disabled{opacity:.5;cursor:not-allowed}
   button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
-  @media (hover:hover){button:not(:disabled):hover{filter:brightness(1.08)}}
+  @media (hover:hover){
+    button:not(:disabled):hover{filter:brightness(1.08);transform:translateY(-2px);
+      box-shadow:0 10px 22px -8px rgba(232,163,23,.5)}
+    button.ghost:not(:disabled):hover{border-color:var(--gold);
+      box-shadow:0 10px 22px -10px rgba(0,0,0,.6)}
+  }
 
   .status-line{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-top:10px}
   .dot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:none}
@@ -109,11 +132,12 @@
   .links-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:20px 0 4px}
   .link-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:10px;
     border:1px solid var(--line);color:var(--text);font-size:13.5px;font-weight:600;
-    text-decoration:none;transition:border-color .15s ease,transform .12s ease}
-  .link-btn:active{transform:scale(.98)}
+    text-decoration:none;transition:border-color .15s ease,transform .15s ease,box-shadow .15s ease}
+  .link-btn:active{transform:scale(.96)}
   .link-btn.gold{border-color:var(--send-line);color:var(--gold)}
   @media (hover:hover){
-    .link-btn:hover{border-color:var(--gold)}
+    .link-btn:hover{border-color:var(--gold);transform:translateY(-2px);
+      box-shadow:0 10px 22px -10px rgba(0,0,0,.6)}
   }
 
   .error-text{color:var(--bad);font-size:13px;margin-top:8px}
@@ -124,6 +148,9 @@
   @media (prefers-reduced-motion:reduce){
     .brand .ch{animation:none;opacity:1;transform:none} .dot.ok{animation:none}
     .bg-video{display:none}
+    .tagline .tc{animation:none;opacity:1;transform:none}
+    .type-cursor{display:none}
+    .card:hover,button:hover,.link-btn:hover{transform:none}
   }
 
   @media (prefers-color-scheme:light){
@@ -139,7 +166,7 @@
 <div class="page">
   <header>
     <h1 class="brand" id="brand" aria-label="Solum"></h1>
-    <p class="tagline">Home loans powered by automatic deed checks. Secure your title, get approved, and skip the crypto complexity "No wallet, Gas, or Seed Phrase needed.</p>
+    <p class="tagline" id="tagline">Home loans powered by automatic deed checks. Secure your title, get approved, and skip the crypto complexity: "No wallet, gas, or seed phrase needed"</p>
   </header>
 
   <div class="hero-grid">
@@ -237,7 +264,7 @@
 
     <section class="links-row">
       <a class="link-btn" href="https://github.com/ibnweb3/solum" target="_blank" rel="noopener">View source on GitHub</a>
-      <a class="link-btn gold" href="#" id="contactLink" target="_blank" rel="noopener">Contact us on X</a>
+      <a class="link-btn gold" href="https://x.com/ibnweb3" id="contactLink" target="_blank" rel="noopener">Message us on X</a>
     </section>
   </div>
 
@@ -268,6 +295,35 @@
     span.textContent = ch;
     brand.appendChild(span);
   });
+
+  // Typewriter-with-pops tagline: split into words (so a word never breaks mid-typing across
+  // a line) and letters within each word (so every letter gets its own little pop-in). Skipped
+  // entirely under reduced-motion — the plain text just stays as it already is in the markup.
+  (function () {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const tagline = document.getElementById('tagline');
+    const text = tagline.textContent;
+    tagline.textContent = '';
+    let i = 0;
+    text.split(' ').forEach((word, wi, words) => {
+      const wordSpan = document.createElement('span');
+      wordSpan.className = 'tw';
+      [...word].forEach((ch) => {
+        const charSpan = document.createElement('span');
+        charSpan.className = 'tc';
+        charSpan.style.setProperty('--i', i++);
+        charSpan.textContent = ch;
+        wordSpan.appendChild(charSpan);
+      });
+      tagline.appendChild(wordSpan);
+      if (wi < words.length - 1) tagline.appendChild(document.createTextNode(' '));
+    });
+    const cursor = document.createElement('span');
+    cursor.className = 'type-cursor';
+    cursor.setAttribute('aria-hidden', 'true');
+    tagline.appendChild(cursor);
+    setTimeout(() => cursor.classList.add('done'), i * 20 + 400);
+  })();
 
   const $ = (id) => document.getElementById(id);
   const show = (el) => { el.hidden = false; };
