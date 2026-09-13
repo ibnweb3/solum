@@ -132,6 +132,15 @@
   .faq dt{margin:0 0 4px;font-weight:600;font-size:14.5px}
   .faq dd{margin:0;font-size:13.5px;line-height:1.5;color:var(--dim)}
 
+  .app-row{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:10px}
+  .app-row .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+  .app-row .top b{font-size:14px}
+  .app-row .deed{font-size:12.5px;color:var(--dim);margin:2px 0 8px}
+  .app-row .progress{height:6px;border-radius:4px;background:var(--ink);overflow:hidden;margin:8px 0}
+  .app-row .progress > i{display:block;height:100%;background:var(--ok);transition:width .3s ease}
+  .app-row .repay-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+  .app-row button{margin-top:0}
+
   .links-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:20px 0 4px}
   .link-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:10px;
     border:1px solid var(--line);color:var(--text);font-size:13.5px;font-weight:600;
@@ -233,17 +242,21 @@
       <button id="applyBtn">Apply</button>
       <p class="error-text" id="applyError" hidden></p>
       <div id="decision" hidden></div>
-      <div id="accountPanel" hidden>
-        <h2 style="margin-top:20px">Your Solum account</h2>
-        <p class="hint">This is the account Solum created and funded for you when you signed in.</p>
-        <div class="status-line"><span class="muted">Address</span><span class="mono" id="acctAddress" style="font-size:12px"></span></div>
-        <div class="status-line"><span class="muted">Balance</span><span class="mono tnum" id="acctBalance"></span></div>
-        <label for="withdrawAddress">Withdraw to a wallet address you hold</label>
-        <input id="withdrawAddress" type="text" placeholder="0x...">
-        <button class="ghost" id="withdrawBtn">Withdraw</button>
-        <p class="error-text" id="withdrawError" hidden></p>
-        <div id="withdrawResult" hidden></div>
-      </div>
+    </section>
+
+    <section class="card" id="dashboardCard" hidden>
+      <h2>Your Solum dashboard</h2>
+      <p class="hint">Your account, and every mortgage application you've submitted.</p>
+      <div class="status-line"><span class="muted">Account address</span><span class="mono" id="acctAddress" style="font-size:12px"></span></div>
+      <div class="status-line"><span class="muted">Balance</span><span class="mono tnum" id="acctBalance"></span></div>
+      <label for="withdrawAddress">Withdraw to a wallet address you hold</label>
+      <input id="withdrawAddress" type="text" placeholder="0x...">
+      <button class="ghost" id="withdrawBtn">Withdraw</button>
+      <p class="error-text" id="withdrawError" hidden></p>
+      <div id="withdrawResult" hidden></div>
+
+      <h2 style="margin-top:22px">Your applications</h2>
+      <div id="applicationsList" class="muted">No applications yet.</div>
     </section>
 
     <section class="card">
@@ -395,6 +408,8 @@
       hide($('loginStep2'));
       show($('loginDone'));
       show($('applyCard'));
+      show($('dashboardCard'));
+      await refreshDashboard();
     } catch (err) {
       $('loginError2').textContent = 'That code is wrong or expired.';
       show($('loginError2'));
@@ -429,16 +444,84 @@
     }
   });
 
-  async function refreshAccount() {
+  const DEED_NAMES = { 1: "Amara's Rental", 2: 'Meridian Court Residence' };
+
+  function renderApplicationRow(app) {
+    const disbursed = BigInt(app.disbursedWei || '0');
+    const repaid = BigInt(app.repaidWei || '0');
+    const isApproved = app.status === 'Approved';
+    const fullyRepaid = disbursed > 0n && repaid >= disbursed;
+    const pct = disbursed > 0n ? Number((repaid * 100n) / disbursed) : 0;
+    const deedLabel = DEED_NAMES[app.deedId] || `Deed #${app.deedId}`;
+
+    const statusLine = !isApproved
+      ? `<div class="status-line"><span class="dot bad"></span>Declined</div>`
+      : disbursed === 0n
+        ? `<div class="status-line"><span class="dot ok"></span>Approved</div>`
+        : `<div class="status-line"><span class="dot ${fullyRepaid ? 'ok' : ''}"></span>${fullyRepaid ? 'Fully repaid' : `Repaid ${formatWei(app.repaidWei)} / ${formatWei(app.disbursedWei)} tCTC`}</div>
+           <div class="progress"><i style="width:${Math.min(pct, 100)}%"></i></div>`;
+
+    const repayControl = isApproved && disbursed > 0n && !fullyRepaid
+      ? `<div class="repay-row">
+           <button class="ghost repay-btn" data-app="${app.applicationId}" style="margin-top:0">Repay</button>
+           <span class="muted repay-status" data-app-status="${app.applicationId}"></span>
+         </div>`
+      : '';
+
+    return `
+      <div class="app-row">
+        <div class="top"><b>Application #${app.applicationId}</b><span class="muted">${new Date(app.created).toLocaleDateString()}</span></div>
+        <p class="deed">${deedLabel}${app.deedFileName ? ` &middot; uploaded <span class="mono">${app.deedFileName}</span>` : ''} &middot; loan ${app.loanAmount}</p>
+        ${statusLine}
+        ${repayControl}
+      </div>`;
+  }
+
+  async function refreshDashboard() {
     try {
       const account = await api('/api/account', { method: 'GET' });
       $('acctAddress').textContent = account.address;
       $('acctBalance').textContent = `${formatWei(account.balanceWei)} tCTC`;
-      show($('accountPanel'));
     } catch {
-      /* no account yet — fine, panel just stays hidden */
+      /* no relayer account yet — fine, address/balance just stay blank until the first apply */
+    }
+    try {
+      const { applications } = await api('/api/my-applications', { method: 'GET' });
+      $('applicationsList').className = '';
+      $('applicationsList').innerHTML = applications.length
+        ? applications.map(renderApplicationRow).join('')
+        : '<p class="muted">No applications yet.</p>';
+    } catch {
+      /* leave whatever was there before */
     }
   }
+
+  $('applicationsList').addEventListener('click', async (e) => {
+    const btn = e.target.closest('.repay-btn');
+    if (!btn) return;
+    const applicationId = Number(btn.dataset.app);
+    const statusEl = document.querySelector(`[data-app-status="${applicationId}"]`);
+    btn.disabled = true;
+    if (statusEl) statusEl.textContent = 'Repaying…';
+    try {
+      const result = await api('/api/repay', { method: 'POST', body: JSON.stringify({ applicationId }) });
+      if (statusEl) {
+        statusEl.textContent = result.fullyRepaid
+          ? `Fully repaid — tx ${result.txHash.slice(0, 10)}…`
+          : `Repaid ${formatWei(result.amountWei)} tCTC — tx ${result.txHash.slice(0, 10)}…`;
+      }
+      await refreshDashboard();
+    } catch (err) {
+      const messages = {
+        already_repaid: 'This loan is already fully repaid.',
+        insufficient_balance: 'Balance is too low to repay right now.',
+        not_repayable: 'This application was never approved.',
+        repayment_not_configured: 'Repayment is not configured on this deployment.',
+      };
+      if (statusEl) statusEl.textContent = messages[err.message] || 'Repayment failed. Try again.';
+      btn.disabled = false;
+    }
+  });
 
   $('applyBtn').addEventListener('click', async () => {
     hide($('applyError'));
@@ -446,12 +529,13 @@
     const propertyValueUsd = Number($('value').value);
     const loanAmount = Number($('loan').value);
     $('applyBtn').disabled = true;
+    const deedFileName = $('deedFile').files[0]?.name;
     const decision = $('decision');
     decision.hidden = true;
     try {
       const result = await api('/api/apply', {
         method: 'POST',
-        body: JSON.stringify({ deedId, propertyValueUsd, loanAmount }),
+        body: JSON.stringify({ deedId, propertyValueUsd, loanAmount, deedFileName }),
       });
       const approved = result.status === 'Approved';
       decision.className = approved ? 'decision approved' : 'decision rejected';
@@ -462,7 +546,7 @@
         ${result.disbursement ? `<p class="tx muted">Loan disbursed: ${formatWei(result.disbursement.amountWei)} tCTC (illustrative demo amount — see FAQ)</p>` : ''}
       `;
       show(decision);
-      if (approved) await refreshAccount();
+      await refreshDashboard();
     } catch (err) {
       $('applyError').textContent = err.message === 'not_logged_in' ? 'Please sign in first.' : 'Something went wrong. Try again.';
       show($('applyError'));
@@ -480,7 +564,7 @@
       const result = await api('/api/withdraw', { method: 'POST', body: JSON.stringify({ toAddress }) });
       $('withdrawResult').innerHTML = `<p class="status-line"><span class="dot ok"></span>Sent ${formatWei(result.amountWei)} tCTC — tx <span class="mono">${result.txHash.slice(0, 10)}…${result.txHash.slice(-6)}</span></p>`;
       show($('withdrawResult'));
-      await refreshAccount();
+      await refreshDashboard();
     } catch (err) {
       const messages = {
         invalid_address: "That doesn't look like a valid address.",

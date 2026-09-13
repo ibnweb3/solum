@@ -2,11 +2,12 @@
  * Solum backend Worker. Routes:
  *   POST /api/login/start    {email} -> {devCode}                  (mocked OTP, see auth/session.ts)
  *   POST /api/login/verify   {email, otp} -> sets session cookie
- *   POST /api/apply          {deedId, propertyValueUsd, loanAmount} -> plain-English decision
+ *   POST /api/apply          {deedId, propertyValueUsd, loanAmount, deedFileName?} -> plain-English decision
  *   GET  /api/status/:id     -> plain-English status (also used by the SMS bridge)
- *   GET  /api/my-applications -> the logged-in user's past applications
+ *   GET  /api/my-applications -> the logged-in user's full activity ledger (status, deed, repayment)
  *   GET  /api/account        -> the logged-in user's relayer address + tCTC balance
  *   POST /api/withdraw       {toAddress} -> sweeps the relayer balance (minus gas) to toAddress
+ *   POST /api/repay          {applicationId} -> repays as much of that loan as the account can afford
  *   *    /sms/smsgate         -> SMS status-check webhook (Phase 4)
  *   *    (everything else)    -> static frontend (frontend/index.html)
  */
@@ -18,6 +19,7 @@ import { getOrCreateRelayerWallet } from "./relayer/wallet.ts";
 import { submitMortgageApplication } from "./relayer/submit.ts";
 import { disburseLoanFunds } from "./relayer/disburse.ts";
 import { getRelayerAccount, withdrawRelayerFunds } from "./relayer/account.ts";
+import { repayLoan } from "./relayer/repay.ts";
 import { lookupApplicationStatus } from "./status/lookup.ts";
 import { sendOtpEmail } from "./email/resend.ts";
 import { BadSignatureError, getSmsProvider } from "../../sms-bridge/provider.ts";
@@ -44,6 +46,7 @@ export default {
       if (url.pathname === "/api/my-applications" && request.method === "GET") return handleMyApplications(request, env);
       if (url.pathname === "/api/account" && request.method === "GET") return handleAccount(request, env);
       if (url.pathname === "/api/withdraw" && request.method === "POST") return handleWithdraw(request, env);
+      if (url.pathname === "/api/repay" && request.method === "POST") return handleRepay(request, env);
 
       const statusMatch = url.pathname.match(/^\/api\/status\/(\d+)$/);
       if (statusMatch && request.method === "GET") {
@@ -116,10 +119,11 @@ async function handleApply(request: Request, env: Env): Promise<Response> {
   const hash = await requireSession(request, env);
   if (!hash) return json({ error: "not_logged_in" }, { status: 401 });
 
-  const { deedId, propertyValueUsd, loanAmount } = await request.json<{
+  const { deedId, propertyValueUsd, loanAmount, deedFileName } = await request.json<{
     deedId?: number;
     propertyValueUsd?: number;
     loanAmount?: number;
+    deedFileName?: string;
   }>();
   if (!deedId || !propertyValueUsd || !loanAmount) {
     return json({ error: "missing_fields" }, { status: 400 });
@@ -129,14 +133,25 @@ async function handleApply(request: Request, env: Env): Promise<Response> {
   const result = await submitMortgageApplication(env, relayer, deedId, propertyValueUsd, loanAmount);
 
   const registry = env.SessionRegistry.get(env.SessionRegistry.idFromName("global"));
-  await registry.recordApplication(hash, result.applicationId, result.deedId);
+  await registry.recordApplication(
+    hash,
+    result.applicationId,
+    result.deedId,
+    deedFileName ?? null,
+    result.status,
+    loanAmount,
+    propertyValueUsd,
+  );
 
   // Illustrative only — SolumASC's loanAmount is a plain number, not real currency. This just
   // makes an approval feel tangible instead of a status flag with nowhere for the money to go.
   let disbursement: { txHash: string; amountWei: string } | null = null;
   if (result.status === "Approved" && relayer.provider) {
     const disbursed = await disburseLoanFunds(env, relayer.provider as JsonRpcProvider, relayer.address, loanAmount);
-    if (disbursed) disbursement = { txHash: disbursed.txHash, amountWei: disbursed.amountWei.toString() };
+    if (disbursed) {
+      disbursement = { txHash: disbursed.txHash, amountWei: disbursed.amountWei.toString() };
+      await registry.recordDisbursement(result.applicationId, disbursed.amountWei.toString());
+    }
   }
 
   const view = await lookupApplicationStatus(env, result.applicationId);
@@ -150,6 +165,27 @@ async function handleMyApplications(request: Request, env: Env): Promise<Respons
   const registry = env.SessionRegistry.get(env.SessionRegistry.idFromName("global"));
   const applications = await registry.listApplications(hash);
   return json({ applications });
+}
+
+async function handleRepay(request: Request, env: Env): Promise<Response> {
+  const hash = await requireSession(request, env);
+  if (!hash) return json({ error: "not_logged_in" }, { status: 401 });
+
+  const { applicationId } = await request.json<{ applicationId?: number }>();
+  if (!applicationId) return json({ error: "missing_application_id" }, { status: 400 });
+
+  try {
+    const result = await repayLoan(env, hash, applicationId);
+    return json({
+      txHash: result.txHash,
+      amountWei: result.amountWei.toString(),
+      repaidWei: result.repaidWei.toString(),
+      disbursedWei: result.disbursedWei.toString(),
+      fullyRepaid: result.fullyRepaid,
+    });
+  } catch (err) {
+    return json({ error: (err as Error).message || "repay_failed" }, { status: 400 });
+  }
 }
 
 // ── Account balance + withdraw ───────────────────────────────────────────────────────────────
