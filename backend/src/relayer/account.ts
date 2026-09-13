@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import type { Env } from "../shared/env.ts";
+import { relayerSignerFromRecord } from "./wallet.ts";
 
 export interface RelayerAccount {
   address: string;
@@ -33,7 +34,7 @@ export async function withdrawRelayerFunds(
   if (!record) throw new Error("no_account");
 
   const provider = new ethers.JsonRpcProvider(env.CREDITCOIN_RPC_URL);
-  const wallet = new ethers.Wallet(record.privateKey, provider);
+  const wallet = relayerSignerFromRecord(env, provider, record);
 
   const balance = await provider.getBalance(record.address);
   const feeData = await provider.getFeeData();

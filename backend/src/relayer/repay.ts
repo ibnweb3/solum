@@ -1,5 +1,6 @@
 import { ethers } from "ethers";
 import type { Env } from "../shared/env.ts";
+import { relayerSignerFromRecord } from "./wallet.ts";
 
 export interface RepayResult {
   txHash: string;
@@ -32,7 +33,7 @@ export async function repayLoan(env: Env, hash: string, applicationId: number): 
   if (owed <= 0n) throw new Error("already_repaid");
 
   const provider = new ethers.JsonRpcProvider(env.CREDITCOIN_RPC_URL);
-  const wallet = new ethers.Wallet(relayer.privateKey, provider);
+  const wallet = relayerSignerFromRecord(env, provider, relayer);
   const balance = await provider.getBalance(relayer.address);
 
   const feeData = await provider.getFeeData();

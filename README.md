@@ -144,6 +144,8 @@ npm run dev                       # local dev server
 # For production:
 wrangler secret put SESSION_SECRET
 wrangler secret put CREDITCOIN_FUNDER_PRIVATE_KEY   # pays gas + disbursements for relayer wallets
+wrangler secret put PRIVY_APP_ID       # optional — real embedded wallets, see Known limitations
+wrangler secret put PRIVY_APP_SECRET   # optional
 npm run deploy
 ```
 
@@ -168,8 +170,12 @@ All endpoints are relative to the deployed Worker's origin.
 
 These are deliberate scope decisions for a testnet hackathon build, not bugs:
 
-- **Gasless relayer wallets are backend-custodied**, not ERC-4337 smart accounts — fine for a
-  demo, not for holding real value.
+- **Gasless relayer wallets are real embedded wallets via [Privy](https://privy.io)'s Server
+  Wallets** — Privy generates and holds each key, and the backend only ever asks it to sign, so
+  key material is never generated or stored in our own database. That's still app-custodied (the
+  backend can request any signature; there's no per-user co-signing requirement), and there's a
+  locally-generated key as a fallback if Privy isn't configured — neither is the same as an
+  ERC-4337 smart account with a paymaster. Fine for a demo, not for holding real value.
 - **Loan amounts and disbursements are illustrative**, not real currency — see the in-app FAQ
   for the exact conversion used.
 - **Deed documents are matched by filename**, not real document/OCR verification, and minting a

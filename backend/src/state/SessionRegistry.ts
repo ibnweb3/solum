@@ -60,6 +60,7 @@ export class SessionRegistry extends DurableObject<Env> {
       `ALTER TABLE application ADD COLUMN property_value_usd TEXT NOT NULL DEFAULT '0'`,
       `ALTER TABLE application ADD COLUMN disbursed_wei TEXT NOT NULL DEFAULT '0'`,
       `ALTER TABLE application ADD COLUMN repaid_wei TEXT NOT NULL DEFAULT '0'`,
+      `ALTER TABLE session ADD COLUMN relayer_wallet_id TEXT`,
     ]) {
       try {
         this.#sql.exec(stmt);
@@ -92,22 +93,23 @@ export class SessionRegistry extends DurableObject<Env> {
 
   // ── Relayer wallets ──────────────────────────────────────────────────────────────────────
 
-  getRelayer(emailHash: string): { address: string; privateKey: string } | null {
+  getRelayer(emailHash: string): { address: string; privateKey: string; walletId: string | null } | null {
     const row = this.#sql
-      .exec<{ relayer_address: string; relayer_private_key: string }>(
-        `SELECT relayer_address, relayer_private_key FROM session WHERE email_hash = ?`,
+      .exec<{ relayer_address: string; relayer_private_key: string; relayer_wallet_id: string | null }>(
+        `SELECT relayer_address, relayer_private_key, relayer_wallet_id FROM session WHERE email_hash = ?`,
         emailHash,
       )
       .toArray()[0];
-    return row ? { address: row.relayer_address, privateKey: row.relayer_private_key } : null;
+    return row ? { address: row.relayer_address, privateKey: row.relayer_private_key, walletId: row.relayer_wallet_id } : null;
   }
 
-  createRelayer(emailHash: string, address: string, privateKey: string): void {
+  createRelayer(emailHash: string, address: string, privateKey: string, walletId: string | null): void {
     this.#sql.exec(
-      `INSERT INTO session (email_hash, relayer_address, relayer_private_key, created) VALUES (?, ?, ?, ?)`,
+      `INSERT INTO session (email_hash, relayer_address, relayer_private_key, relayer_wallet_id, created) VALUES (?, ?, ?, ?, ?)`,
       emailHash,
       address,
       privateKey,
+      walletId,
       Date.now(),
     );
   }

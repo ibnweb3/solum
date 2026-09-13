@@ -18,6 +18,8 @@ export interface Env {
   SMSGATE_PASSWORD?: string;
   SMSGATE_WEBHOOK_SECRET?: string;
   RESEND_API_KEY?: string;
+  PRIVY_APP_ID?: string;
+  PRIVY_APP_SECRET?: string;
 
   // vars (optional)
   EMAIL_FROM?: string;
@@ -29,6 +31,9 @@ export function checkReadiness(env: Env): string[] {
   if (!env.SOLUM_ASC_CONTRACT_ADDRESS) warnings.push("SOLUM_ASC_CONTRACT_ADDRESS is unset — chain calls will fail.");
   if (!env.CREDITCOIN_FUNDER_PRIVATE_KEY) warnings.push("CREDITCOIN_FUNDER_PRIVATE_KEY is unset — relayer wallets cannot be gas-funded.");
   if (!env.SESSION_SECRET) warnings.push("SESSION_SECRET is unset — falling back to an insecure dev default, do not use in production.");
+  if (!env.PRIVY_APP_ID || !env.PRIVY_APP_SECRET) {
+    warnings.push("PRIVY_APP_ID/PRIVY_APP_SECRET unset — relayer wallets fall back to locally-generated keys instead of Privy server wallets.");
+  }
   for (const w of warnings) console.warn(`[solum] ${w}`);
   return warnings;
 }

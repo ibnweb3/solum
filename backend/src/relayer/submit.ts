@@ -1,6 +1,7 @@
 import { Contract, ethers } from "ethers";
 import solumAscAbi from "../../contracts/abi/SolumASC.json" with { type: "json" };
 import type { Env } from "../shared/env.ts";
+import type { RelayerWallet } from "./wallet.ts";
 
 export interface ApplyResult {
   applicationId: number;
@@ -12,7 +13,7 @@ export interface ApplyResult {
 /** Submits applyForMortgage(...) on behalf of the user's relayer wallet and decodes the result. */
 export async function submitMortgageApplication(
   env: Env,
-  relayerWallet: ethers.Wallet,
+  relayerWallet: RelayerWallet,
   deedId: number,
   propertyValueUsd: number,
   loanAmount: number,

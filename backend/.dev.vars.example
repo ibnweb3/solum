@@ -1,6 +1,11 @@
 SESSION_SECRET=
 CREDITCOIN_FUNDER_PRIVATE_KEY=
 
+# Optional — real embedded wallets via Privy (https://dashboard.privy.io). Without these,
+# a relayer wallet is generated locally instead (see README "Known limitations").
+PRIVY_APP_ID=
+PRIVY_APP_SECRET=
+
 # Optional — real email delivery via Resend (https://resend.com). Without these, sign-in
 # falls back to showing the code on screen.
 RESEND_API_KEY=

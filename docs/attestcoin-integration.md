@@ -146,10 +146,13 @@ cosmetic layer on top of it:
 
 - **Plain-language decisions.** Every outcome is rendered in ordinary language — what was
   checked, what was found, and why — rather than a transaction hash and a status enum.
-- **Gasless onboarding.** A borrower signs in with an email; a session-scoped relayer account is
-  created and funded automatically, so no wallet, seed phrase, or held gas token is ever required
-  to interact with the underlying contracts. This is disclosed as a hackathon-scope simplification
-  (Section 5) rather than a production custody model.
+- **Gasless onboarding via a real embedded wallet.** A borrower signs in with an email; a
+  relayer account backed by [Privy](https://privy.io)'s Server Wallets is created and funded
+  automatically, so no wallet, seed phrase, or held gas token is ever required to interact with
+  the underlying contracts. Privy generates and holds the key — the backend only asks it to sign,
+  over a plain REST call — rather than Solum generating and storing a key itself; a
+  locally-generated key is the fallback if Privy is unreachable or unconfigured. Still disclosed
+  as a hackathon-scope simplification (Section 5), not a production custody model.
 - **Tangible collateral documents.** Property deeds are represented as downloadable documents a
   user can hold, inspect, and re-submit, rather than only an opaque token ID.
 - **An account a borrower can see and leave.** On approval, funds are visibly credited to the
@@ -158,9 +161,19 @@ cosmetic layer on top of it:
 
 ## 5. Disclosed limitations (hackathon scope, not production claims)
 
-- **Relayer custody.** Gasless-onboarding wallets are held by the backend, not by ERC-4337 smart
-  accounts with a paymaster. Adequate for demonstrating the underwriting flow; not a custody
-  model suitable for real funds.
+- **Relayer custody.** Gasless-onboarding wallets are generated and held by Privy's Server
+  Wallets, called by the backend over a plain REST API — not by ERC-4337 smart accounts with a
+  paymaster, and still app-custodied (the backend can request a signature without a per-user
+  co-signing step). Adequate for demonstrating the underwriting flow; not a custody model
+  suitable for real funds.
+- **Embedded-wallet SDK evaluated and rejected: Web3Auth.** We first tried Web3Auth's Node SDK
+  (`@web3auth/node-sdk`) for this. It does not run on Cloudflare Workers: its `@web3auth/auth`
+  dependency calls `crypto.getRandomValues()` at module-import time as part of a MiMC-sponge key
+  derivation, and the Workers isolate model forbids any randomness or I/O outside a request
+  handler — the Worker fails to boot the instant the package is imported, with no compatibility
+  flag able to fix it. Privy's Server Wallets were used instead specifically because their REST
+  API needs no SDK at all: every call is a plain `fetch()`, so there was nothing left to be
+  incompatible with the runtime.
 - **Illustrative disbursement.** `SolumASC`'s `loanAmount` is an arbitrary figure entered by the
   applicant, not a real-currency value; the tCTC credited on approval is a proportional,
   disclosed demo conversion, not a real loan disbursement.
@@ -182,7 +195,7 @@ cosmetic layer on top of it:
 - **Repayment and equity release.** A `PaymentMade` event on the source chain, proven the same
   way as `CollateralPledged`, could progressively release a borrower's equity or the underlying
   deed as a mortgage is repaid.
-- **ERC-4337 account abstraction.** Replacing backend-custodied relayer wallets with smart
+- **ERC-4337 account abstraction.** Replacing app-custodied Privy relayer wallets with smart
   accounts and a paymaster would remove the one part of the system that currently requires
   trusting Solum's backend, without reintroducing a seed phrase for the end user.
 - **Generalized registry.** The pledge-verification pattern described here is not specific to
