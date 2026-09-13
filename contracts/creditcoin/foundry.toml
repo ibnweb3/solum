@@ -1,0 +1,23 @@
+[profile.default]
+src = "src"
+out = "out"
+test = "test"
+script = "script"
+libs = ["../../node_modules", "../../lib"]
+# Resolve @gluwa/asc-contracts from npm (readability ASCBase + common/EvmV1Decoder) — same
+# package the official attestcoin-protocol-examples repo uses.
+remappings = [
+    "@openzeppelin/=../../node_modules/@openzeppelin/",
+    "@gluwa/asc-contracts/=../../node_modules/@gluwa/asc-contracts/",
+    "forge-std/=../../lib/forge-std/src/",
+]
+solc_version = "0.8.30"
+optimizer = true
+optimizer_runs = 200
+# Required: ASCBase + a subclass with several storage reads hits "stack too deep" without it
+# (same note as the official examples' own foundry.toml).
+via_ir = true
+evm_version = "shanghai"
+
+[lint]
+lint_on_build = false

@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<meta name="description" content="Solum — cross-chain mortgage underwriting on Attestcoin. Apply for a home loan without a wallet, gas, or a seed phrase.">
+<meta name="theme-color" content="#0a0a0b">
+<title>Solum — mortgage underwriting on Attestcoin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,800;1,700&display=swap">
+<style>
+  :root{
+    --ink:#0a0a0b;--panel:#101013;--line:#22222a;--text:#e9e9ec;--dim:#8a8a94;
+    --recv:#17171c;--recv-line:#26262f;--gold:#e8a317;--gold-soft:#2a2113;
+    --send:#1c1a12;--send-line:#463714;--ok:#4ec98a;--bad:#e8626a;--bezel:#1b1b21;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--ink);color:var(--text);min-height:100dvh;
+    font:400 16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  ::selection{background:var(--gold);color:#000}
+  a{color:var(--gold)}
+  .mono{font-family:ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,monospace}
+  .tnum{font-variant-numeric:tabular-nums}
+  [hidden]{display:none!important}
+
+  /* Background video — decorative only, behind everything, never competes with content.
+     JS only assigns a src (see bottom script) for dark-mode users who haven't asked for
+     reduced motion or a data saver; light mode and no-JS both simply keep the flat --ink. */
+  .bg-video{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;
+    background:var(--ink)}
+  .bg-scrim{position:fixed;inset:0;z-index:0;
+    background:
+      radial-gradient(1100px 550px at 50% -8%, rgba(232,163,23,.14), transparent 60%),
+      linear-gradient(180deg, rgba(10,10,11,.5) 0%, rgba(10,10,11,.62) 45%, rgba(10,10,11,.85) 80%, var(--ink) 100%)}
+  .page{position:relative;z-index:1;max-width:900px;margin:0 auto;padding:28px 18px 60px}
+  .stack{max-width:640px;margin:0 auto}
+
+  .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin:0 auto}
+  @media (max-width:760px){.hero-grid{grid-template-columns:1fr}}
+
+  header{padding:8px 0 22px}
+  .brand{margin:0 0 6px;font-weight:800;line-height:1;letter-spacing:-.02em;color:var(--gold);
+    font-family:"Playfair Display",Georgia,"Times New Roman",serif;font-size:clamp(40px,10vw,54px)}
+  .brand .ch{display:inline-block;transform-origin:50% 80%;
+    background:linear-gradient(180deg,#ffe7ab 0%,#f4c665 40%,var(--gold) 62%,#9a640b 100%);
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    animation:brandPop 3s cubic-bezier(.2,1.65,.32,1) infinite;animation-delay:calc(var(--i) * 100ms)}
+  @keyframes brandPop{
+    0%{opacity:.5;transform:translateY(9px) scale(.62) rotate(-6deg)}
+    11%{opacity:1;transform:translateY(-2px) scale(1.12) rotate(2deg)}
+    20%,100%{opacity:1;transform:none}
+  }
+  .tagline{margin:0;font-size:15px;color:var(--text);max-width:46ch;
+    text-shadow:0 1px 3px rgba(0,0,0,.9),0 2px 18px rgba(0,0,0,.75)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin:16px 0}
+  .card h2{margin:0 0 4px;font-size:15px;font-weight:600}
+  .card .hint{margin:0 0 14px;font-size:13px;color:var(--dim)}
+
+  label{display:block;font-size:12.5px;color:var(--dim);margin:12px 0 6px}
+  label:first-of-type{margin-top:0}
+  input,select{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:10px;
+    padding:11px 12px;color:var(--text);font-size:15px;outline:none}
+  input:focus,select:focus{border-color:var(--gold)}
+
+  .row{display:flex;gap:10px}
+  .row > *{flex:1}
+
+  button{appearance:none;border:0;cursor:pointer;background:var(--gold);color:#000;
+    font:600 14.5px/1 -apple-system,system-ui,sans-serif;padding:12px 18px;border-radius:10px;
+    margin-top:16px;transition:transform .12s ease,opacity .12s ease}
+  button:active{transform:scale(.98)}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+  @media (hover:hover){button:not(:disabled):hover{filter:brightness(1.08)}}
+
+  .status-line{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);margin-top:10px}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:none}
+  .dot.ok{background:var(--ok);animation:pulse 2.2s ease-in-out infinite}
+  .dot.bad{background:var(--bad)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  .decision{border-radius:14px;padding:16px;margin-top:16px;border:1px solid transparent;
+    animation:rise .3s ease both;font-size:14.5px;line-height:1.5}
+  .decision.approved{background:var(--recv);border-color:var(--ok)}
+  .decision.rejected{background:var(--recv);border-color:var(--bad)}
+  .decision .headline{font-weight:700;margin:0 0 6px}
+  .decision.approved .headline{color:var(--ok)}
+  .decision.rejected .headline{color:var(--bad)}
+  .decision .tx{margin-top:10px;font-size:12px}
+  @keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  .steps{margin:0;padding:0;list-style:none;counter-reset:s;display:grid;gap:8px}
+  .steps li{counter-increment:s;position:relative;padding-left:30px;font-size:13.5px;line-height:1.45}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:1px;width:19px;height:19px;
+    border:1px solid var(--send-line);border-radius:5px;color:var(--gold);
+    font:600 10.5px/19px ui-monospace,monospace;text-align:center}
+  .steps b{font-weight:600}
+  .steps span{color:var(--dim)}
+
+  .faq{margin:0;padding:0;display:grid;gap:16px}
+  .faq dt{margin:0 0 4px;font-weight:600;font-size:14.5px}
+  .faq dd{margin:0;font-size:13.5px;line-height:1.5;color:var(--dim)}
+
+  .links-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:20px 0 4px}
+  .link-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 18px;border-radius:10px;
+    border:1px solid var(--line);color:var(--text);font-size:13.5px;font-weight:600;
+    text-decoration:none;transition:border-color .15s ease,transform .12s ease}
+  .link-btn:active{transform:scale(.98)}
+  .link-btn.gold{border-color:var(--send-line);color:var(--gold)}
+  @media (hover:hover){
+    .link-btn:hover{border-color:var(--gold)}
+  }
+
+  .error-text{color:var(--bad);font-size:13px;margin-top:8px}
+  .muted{color:var(--dim);font-size:12.5px}
+  footer{margin-top:26px;font-size:11.5px;color:var(--dim);text-align:center}
+  footer a{color:var(--gold)}
+
+  @media (prefers-reduced-motion:reduce){
+    .brand .ch{animation:none;opacity:1;transform:none} .dot.ok{animation:none}
+    .bg-video{display:none}
+  }
+
+  @media (prefers-color-scheme:light){
+    .bg-video,.bg-scrim{display:none}
+    :root{--ink:#fafafa;--panel:#fff;--line:#e6e6e6;--text:#111;--dim:#6b6b73;
+      --recv:#f1f1f3;--recv-line:#e4e4e7;--send:#fff6e2;--send-line:#f0d9a6;--gold:#a8710a;--gold-soft:#fff4dd;--ok:#1a8a54;--bad:#c23a41;--bezel:#d7d7db}
+  }
+</style>
+</head>
+<body>
+<video class="bg-video" id="bgVideo" poster="bg-poster.jpg" muted loop playsinline preload="none" aria-hidden="true"></video>
+<div class="bg-scrim" aria-hidden="true"></div>
+<div class="page">
+  <header>
+    <h1 class="brand" id="brand" aria-label="Solum"></h1>
+    <p class="tagline">A home loan that checks — before it approves you — whether your deed is already pledged somewhere else. No wallet, no gas, no seed phrase.</p>
+  </header>
+
+  <div class="hero-grid">
+    <section class="card" id="loginCard">
+      <h2>1. SignUp/Login</h2>
+      <p class="hint">Just an email. We create and fund your loan account behind the scenes — you'll never see a wallet address.</p>
+      <div id="loginStep1">
+        <label for="email">Email</label>
+        <input id="email" type="email" placeholder="amara@example.com" autocomplete="email">
+        <button id="sendCodeBtn">Send me a code</button>
+        <p class="error-text" id="loginError1" hidden></p>
+      </div>
+      <div id="loginStep2" hidden>
+        <p class="muted" id="devCodeHint"></p>
+        <label for="otp">6-digit code</label>
+        <input id="otp" inputmode="numeric" maxlength="6" placeholder="123456" class="mono tnum">
+        <button id="verifyBtn">Verify &amp; continue</button>
+        <p class="error-text" id="loginError2" hidden></p>
+      </div>
+      <div id="loginDone" hidden>
+        <div class="status-line"><span class="dot ok"></span><span>Signed in — your loan account is ready.</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>How Solum works</h2>
+      <ol class="steps">
+        <li><b>A deed gets pledged.</b> <span>Someone locks a property deed as collateral for a loan on an unrelated platform, on Ethereum.</span></li>
+        <li><b>Attestcoin proves it, trustlessly.</b> <span>No oracle, no partnership — Solum verifies the real transaction with a cryptographic proof.</span></li>
+        <li><b>You apply here.</b> <span>Before approving your mortgage, Solum checks that same deed against every pledge it has verified.</span></li>
+        <li><b>Clean or conflicting.</b> <span>Approved instantly if it's clean; declined — and told why — if it's already pledged elsewhere.</span></li>
+      </ol>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card" id="applyCard" hidden>
+      <h2>2. Apply for a mortgage</h2>
+      <p class="hint">Pick a property, tell us the value and how much you'd like to borrow.</p>
+      <label for="deed">Property</label>
+      <select id="deed">
+        <option value="1">Deed #1 — Amara's rental (pledged as collateral on another platform)</option>
+        <option value="2">Deed #2 — clean deed, no existing pledge</option>
+      </select>
+      <div class="row">
+        <div>
+          <label for="value">Home value</label>
+          <input id="value" type="number" min="1" value="500000" class="mono tnum">
+        </div>
+        <div>
+          <label for="loan">Loan amount</label>
+          <input id="loan" type="number" min="1" value="300000" class="mono tnum">
+        </div>
+      </div>
+      <button id="applyBtn">Apply</button>
+      <p class="error-text" id="applyError" hidden></p>
+      <div id="decision" hidden></div>
+    </section>
+
+    <section class="card">
+      <h2>Check a status</h2>
+      <p class="hint">Anyone can look up an application number — no sign-in needed, same as texting "STATUS &lt;number&gt;".</p>
+      <div class="row">
+        <input id="statusId" type="number" min="1" placeholder="Application #" class="mono tnum">
+        <button class="ghost" id="checkStatusBtn" style="margin-top:0">Check</button>
+      </div>
+      <div id="statusResult" hidden></div>
+    </section>
+
+    <section class="card">
+      <h2>FAQ</h2>
+      <dl class="faq">
+        <div>
+          <dt>Do I need a crypto wallet to use Solum?</dt>
+          <dd>No. Sign in with just an email — Solum creates and funds a loan account for you behind the scenes. You never see a wallet address, gas, or a seed phrase.</dd>
+        </div>
+        <div>
+          <dt>How does Solum know my deed isn't pledged elsewhere?</dt>
+          <dd>Through the Attestcoin Protocol: a cryptographic proof that a specific transaction happened on another chain. No oracle, no data-sharing agreement with the other platform — Solum verifies it directly.</dd>
+        </div>
+        <div>
+          <dt>What happens if my deed is already pledged?</dt>
+          <dd>Your application is declined instantly, with the reason stated in plain English. Nothing is ever silently approved.</dd>
+        </div>
+        <div>
+          <dt>Is this real money?</dt>
+          <dd>No — this is a testnet build for the BUIDL CTC 2026 Fall hackathon on Creditcoin. All values, deeds, and platforms in the demo are illustrative.</dd>
+        </div>
+        <div>
+          <dt>Which chains does this run on?</dt>
+          <dd>Ethereum Sepolia for the collateral-pledge registry, and Creditcoin's CC3 testnet for the mortgage decision itself — connected by the Attestcoin Protocol.</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="links-row">
+      <a class="link-btn" href="https://github.com/ibnweb3/solum" target="_blank" rel="noopener">View source on GitHub</a>
+      <a class="link-btn gold" href="#" id="contactLink" target="_blank" rel="noopener">Contact us on X</a>
+    </section>
+  </div>
+
+  <footer>Solum — built on the <a href="https://docs.attestcoin.org/" target="_blank" rel="noopener">Attestcoin Protocol</a> · Creditcoin CC3 testnet</footer>
+</div>
+
+<script>
+(function () {
+  // Background video — only fetched for dark-mode users with no reduced-motion or
+  // data-saver preference. Skipping the request entirely (not just hiding the element)
+  // is what actually keeps the page light for anyone who'd rather not download it.
+  (function () {
+    const video = document.getElementById('bgVideo');
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isLight = matchMedia('(prefers-color-scheme: light)').matches;
+    const conn = navigator.connection;
+    const saveData = !!(conn && (conn.saveData || /2g/.test(conn.effectiveType || '')));
+    if (reduceMotion || isLight || saveData) return;
+    video.src = 'bg-video.mp4';
+    video.play().catch(() => {}); // autoplay can still be blocked by the browser; poster covers it
+  })();
+
+  const brand = document.getElementById('brand');
+  'Solum'.split('').forEach((ch, i) => {
+    const span = document.createElement('span');
+    span.className = 'ch';
+    span.style.setProperty('--i', i);
+    span.textContent = ch;
+    brand.appendChild(span);
+  });
+
+  const $ = (id) => document.getElementById(id);
+  const show = (el) => { el.hidden = false; };
+  const hide = (el) => { el.hidden = true; };
+
+  async function api(path, options) {
+    const res = await fetch(path, {
+      credentials: 'include',
+      headers: { 'content-type': 'application/json' },
+      ...options,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `request_failed_${res.status}`);
+    return data;
+  }
+
+  $('sendCodeBtn').addEventListener('click', async () => {
+    hide($('loginError1'));
+    const email = $('email').value.trim();
+    if (!email) return;
+    $('sendCodeBtn').disabled = true;
+    try {
+      const data = await api('/api/login/start', { method: 'POST', body: JSON.stringify({ email }) });
+      $('devCodeHint').textContent = `Demo mode — no real email is sent. Your code is ${data.devCode}.`;
+      hide($('loginStep1'));
+      show($('loginStep2'));
+    } catch (err) {
+      $('loginError1').textContent = 'Could not send a code. Try again.';
+      show($('loginError1'));
+    } finally {
+      $('sendCodeBtn').disabled = false;
+    }
+  });
+
+  $('verifyBtn').addEventListener('click', async () => {
+    hide($('loginError2'));
+    const email = $('email').value.trim();
+    const otp = $('otp').value.trim();
+    if (!otp) return;
+    $('verifyBtn').disabled = true;
+    try {
+      await api('/api/login/verify', { method: 'POST', body: JSON.stringify({ email, otp }) });
+      hide($('loginStep2'));
+      show($('loginDone'));
+      show($('applyCard'));
+    } catch (err) {
+      $('loginError2').textContent = 'That code is wrong or expired.';
+      show($('loginError2'));
+    } finally {
+      $('verifyBtn').disabled = false;
+    }
+  });
+
+  $('applyBtn').addEventListener('click', async () => {
+    hide($('applyError'));
+    const deedId = Number($('deed').value);
+    const propertyValueUsd = Number($('value').value);
+    const loanAmount = Number($('loan').value);
+    $('applyBtn').disabled = true;
+    const decision = $('decision');
+    decision.hidden = true;
+    try {
+      const result = await api('/api/apply', {
+        method: 'POST',
+        body: JSON.stringify({ deedId, propertyValueUsd, loanAmount }),
+      });
+      const approved = result.status === 'Approved';
+      decision.className = approved ? 'decision approved' : 'decision rejected';
+      decision.innerHTML = `
+        <p class="headline">${approved ? 'Approved' : 'Declined'} — application #${result.applicationId}</p>
+        <p>${result.plainEnglish}</p>
+        <p class="tx muted">Verified on-chain, tx <span class="mono">${result.txHash.slice(0, 10)}…${result.txHash.slice(-6)}</span></p>
+      `;
+      show(decision);
+    } catch (err) {
+      $('applyError').textContent = err.message === 'not_logged_in' ? 'Please sign in first.' : 'Something went wrong. Try again.';
+      show($('applyError'));
+    } finally {
+      $('applyBtn').disabled = false;
+    }
+  });
+
+  $('checkStatusBtn').addEventListener('click', async () => {
+    const id = Number($('statusId').value);
+    const result = $('statusResult');
+    if (!id) return;
+    try {
+      const data = await api(`/api/status/${id}`, { method: 'GET' });
+      result.className = data.found ? (data.raw.status === 'Approved' ? 'decision approved' : 'decision rejected') : '';
+      result.innerHTML = `<p>${data.plainEnglish}</p>`;
+      show(result);
+    } catch (err) {
+      result.className = '';
+      result.innerHTML = '<p class="error-text">Could not look that up.</p>';
+      show(result);
+    }
+  });
+})();
+</script>
+</body>
+</html>

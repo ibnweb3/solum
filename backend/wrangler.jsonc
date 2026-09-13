@@ -1,0 +1,32 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "solum",
+  "account_id": "a3b839b4883b7df7da3fd67dc6dee241",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "workers_dev": true,
+
+  "assets": {
+    "directory": "../frontend",
+    "binding": "ASSETS"
+  },
+
+  "durable_objects": {
+    "bindings": [{ "name": "SessionRegistry", "class_name": "SessionRegistry" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["SessionRegistry"] }],
+
+  "vars": {
+    "CREDITCOIN_RPC_URL": "https://rpc.cc3-testnet.creditcoin.network",
+    "SOLUM_ASC_CONTRACT_ADDRESS": "0xe5c3c28dBDdd3AB3486aBa2c9AE42b2321D659FD",
+    "RELAYER_TOPUP_WEI": "5000000000000000",
+    "OTP_TTL_SECONDS": "600"
+  }
+
+  // Secrets (wrangler secret put — never in this file):
+  //   CREDITCOIN_FUNDER_PRIVATE_KEY   funds each new relayer wallet with a small tCTC top-up
+  //   SESSION_SECRET                   HMAC key for signing the session cookie
+  //   SMSGATE_USERNAME  SMSGATE_PASSWORD  SMSGATE_WEBHOOK_SECRET   (Phase 4, SMS status-check)
+}
