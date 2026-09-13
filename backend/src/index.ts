@@ -19,6 +19,7 @@ import { submitMortgageApplication } from "./relayer/submit.ts";
 import { disburseLoanFunds } from "./relayer/disburse.ts";
 import { getRelayerAccount, withdrawRelayerFunds } from "./relayer/account.ts";
 import { lookupApplicationStatus } from "./status/lookup.ts";
+import { sendOtpEmail } from "./email/resend.ts";
 import { BadSignatureError, getSmsProvider } from "../../sms-bridge/provider.ts";
 import { handleStatusCommand } from "../../sms-bridge/statusHandler.ts";
 
@@ -73,10 +74,16 @@ async function handleLoginStart(request: Request, env: Env): Promise<Response> {
   const registry = env.SessionRegistry.get(env.SessionRegistry.idFromName("global"));
   await registry.startLogin(hash, code, ttlSeconds);
 
-  console.log(`[solum] OTP for ${email}: ${code} (demo-only, not actually emailed)`);
-  // Demo simplification: no real email is sent. The code is returned directly so the flow is
-  // fully testable end to end without an email provider. Disclosed in the README.
-  return json({ ok: true, devCode: code });
+  const emailed = await sendOtpEmail(env, email, code);
+  if (emailed) {
+    console.log(`[solum] OTP emailed to ${email}`);
+    return json({ ok: true, emailed: true });
+  }
+
+  // Falls back here if RESEND_API_KEY is unset, or a send fails (e.g. the Resend sandbox sender
+  // can only deliver to the account owner until a domain is verified) — sign-in still works.
+  console.log(`[solum] OTP for ${email}: ${code} (email not sent — dev fallback)`);
+  return json({ ok: true, emailed: false, devCode: code });
 }
 
 async function handleLoginVerify(request: Request, env: Env): Promise<Response> {

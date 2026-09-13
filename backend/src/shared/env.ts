@@ -17,6 +17,10 @@ export interface Env {
   SMSGATE_USERNAME?: string;
   SMSGATE_PASSWORD?: string;
   SMSGATE_WEBHOOK_SECRET?: string;
+  RESEND_API_KEY?: string;
+
+  // vars (optional)
+  EMAIL_FROM?: string;
 }
 
 /** House rule (from the sibling BinaText project): boot regardless, warn about what's disabled. */

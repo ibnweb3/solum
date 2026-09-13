@@ -371,7 +371,9 @@
     $('sendCodeBtn').disabled = true;
     try {
       const data = await api('/api/login/start', { method: 'POST', body: JSON.stringify({ email }) });
-      $('devCodeHint').textContent = `Demo mode — no real email is sent. Your code is ${data.devCode}.`;
+      $('devCodeHint').textContent = data.emailed
+        ? `We sent a code to ${email} — check your inbox.`
+        : `Demo mode — no real email is sent. Your code is ${data.devCode}.`;
       hide($('loginStep1'));
       show($('loginStep2'));
     } catch (err) {
