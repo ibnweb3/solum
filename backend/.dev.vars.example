@@ -1,0 +1,12 @@
+SESSION_SECRET=
+CREDITCOIN_FUNDER_PRIVATE_KEY=
+
+# Optional — real email delivery via Resend (https://resend.com). Without these, sign-in
+# falls back to showing the code on screen.
+RESEND_API_KEY=
+EMAIL_FROM=
+
+# Optional — SMS status-check via sms-gate.app (https://sms-gate.app)
+SMSGATE_USERNAME=
+SMSGATE_PASSWORD=
+SMSGATE_WEBHOOK_SECRET=

@@ -3,40 +3,52 @@
 **A mortgage that checks, trustlessly, whether your deed is already pledged somewhere else —
 before it approves you. No wallet, no gas, no seed phrase for the borrower.**
 
-Built for [BUIDL CTC 2026 Fall](https://dorahacks.io/hackathon/buidl-ctc-2026-fall) (Creditcoin
-& Credit Labs), RWA track. Every submission this season must integrate the
-[Attestcoin Protocol](https://docs.attestcoin.org/) — see
-[`docs/attestcoin-integration.md`](docs/attestcoin-integration.md) for the full technical
-breakdown of how Solum uses it.
+🔗 **Live app:** [solum.ibnweb3lab.workers.dev](https://solum.ibnweb3lab.workers.dev)
+📄 **Protocol whitepaper:** [`docs/attestcoin-integration.md`](docs/attestcoin-integration.md)
+🐙 **Source:** this repo · 💬 **Contact:** [@ibnweb3 on X](https://x.com/ibnweb3)
 
-## The problem
+Built for [BUIDL CTC 2026 Fall](https://dorahacks.io/hackathon/buidl-ctc-2026-fall) (Creditcoin
+& Credit Labs), RWA track, on the [Attestcoin Protocol](https://docs.attestcoin.org/).
+
+---
+
+## What Solum is
 
 Real-world-asset tokenization is fragmenting across chains and platforms faster than any
 registry can track it. Nothing stops the same tokenized property deed from being pledged as
-collateral on two unrelated lending platforms — each one only sees its own ledger. This is a
-real, documented mortgage-fraud pattern (double-pledging), not a hypothetical.
+collateral on two unrelated lending platforms — each one only sees its own ledger.
+**Double-pledging** is a real, documented mortgage-fraud pattern, not a hypothetical.
 
-**Amara** tokenizes her rental property on "Platform A" (a generic pawn-shop-style vault we
-built on Ethereum Sepolia) and gets a loan against it. Weeks later, she — or a fraudster —
-applies for a second mortgage against the same deed on Solum, on Creditcoin. Without a
-trustless, cross-chain check, this succeeds, because no registry connects the two platforms —
-and no centralized alternative works either, since rival lenders have no reason to share a
-database or sign a partnership with each other.
+Solum solves one specific piece of that: before approving a mortgage against a property deed, it
+cryptographically verifies — with no oracle, no partnership, no shared database between
+platforms — whether that same deed is already pledged as collateral somewhere else. The proof
+comes from the [Attestcoin Protocol](https://docs.attestcoin.org/), which lets a contract on
+Creditcoin trustlessly verify that a specific event happened on another chain (in this case,
+Ethereum Sepolia).
 
-## What it does
+On top of that, Solum is built so a non-technical borrower can actually use it: sign in with an
+email, no wallet or seed phrase ever required.
 
-1. **Cross-chain collateral check.** Before approving a mortgage, Solum verifies — via
-   Attestcoin, with no oracle, no partnership between platforms — whether the deed is already
-   pledged elsewhere.
-2. **Plain-language application.** No wallet address, gas, or NFT jargon shown to the borrower;
-   decisions come back in plain English ("declined — already pledged on another platform").
-3. **Gasless onboarding.** Sign in with just an email; a backend-custodied relayer wallet is
-   created and funded automatically. Disclosed hackathon simplification — see
-   `docs/attestcoin-integration.md`.
-4. **SMS status-check.** Text `STATUS <application number>` to get the same plain-English
-   answer the web app gives, off one shared formatter.
+## Try it
 
-## Architecture
+Go to **[solum.ibnweb3lab.workers.dev](https://solum.ibnweb3lab.workers.dev)** — no install, no
+wallet, no testnet tokens needed on your end.
+
+1. **Sign in** with any email address. You'll get a real emailed code if you're the account
+   owner of the configured mail sender; everyone else gets the code shown directly on screen
+   (clearly labeled) — sign-in works either way.
+2. **Apply for a mortgage.** Download one of the two sample deed documents, then upload it back
+   into the form — the app recognizes which property it is and fills in the rest, or you can
+   pick a property manually from the dropdown. One sample deed is already pledged as collateral
+   elsewhere; the other is clean.
+3. **See the decision.** Approved or declined comes back in plain English, with a link to the
+   real on-chain transaction that proves it — no "trust us."
+4. **If approved**, your Solum account is credited with testnet funds (illustrative — see the
+   FAQ on the site) that you can see and withdraw to any address you hold.
+5. **Check any application's status** any time, without signing in — the same lookup an SMS
+   status-check would use.
+
+## How it works
 
 ```
  Ethereum Sepolia ("Platform A" —          Creditcoin CC3 testnet (Solum)
@@ -47,64 +59,123 @@ database or sign a partnership with each other.
  │   emits CollateralPledged │              │  precompile (0x0FD2) ─► verified   │
  └──────────┬────────────────┘              │  ─► deedIsPledgedElsewhere[deedId] │
             │                               │                                     │
-            │ tx hash                       │  applyForMortgage(deedId, ...)      │
-            ▼                               │   reads that verified mirror,       │
- worker/src/cli.ts ── waits for attestation, │   approves or rejects instantly     │
+            │ tx hash                       │  applyForMortgage(...) reads that   │
+            ▼                               │  verified mirror, approves/rejects, │
+ worker/src/cli.ts ── waits for attestation, │  disburses funds on approval        │
  fetches Merkle + continuity proof ─────────►│                                     │
  from the Attestcoin Proof Builder           └──────────────┬──────────────────────┘
                                                               │
                                               backend/ (Cloudflare Worker)
-                                              plain-language UI, gasless relayer,
-                                              SMS bridge — all read/write through
-                                              the same SolumASC contract above
+                                              plain-language UI, gasless relayer +
+                                              account/withdraw, SMS bridge — all
+                                              read/write through SolumASC above
 ```
+
+A source-chain contract (`PledgeVault`, on Ethereum Sepolia) locks a property deed as collateral
+and emits an event. A readability worker waits for that transaction to be cryptographically
+attested, fetches a proof, and submits it to `SolumASC` on Creditcoin, which verifies it against
+the **Block Prover precompile** before recording the deed as pledged. From then on, any mortgage
+application against that deed is checked, instantly and trustlessly, against that verified
+record. Full technical detail, design rationale, and security properties are in
+[`docs/attestcoin-integration.md`](docs/attestcoin-integration.md).
+
+## Deployed contracts
+
+| Contract | Chain | Address |
+|---|---|---|
+| `PropertyDeed` | Ethereum Sepolia | [`0xe5c3c28dBDdd3AB3486aBa2c9AE42b2321D659FD`](https://sepolia.etherscan.io/address/0xe5c3c28dBDdd3AB3486aBa2c9AE42b2321D659FD) |
+| `PledgeVault` | Ethereum Sepolia | [`0xAc486c6E6632af96C432f97857CA7643911885B0`](https://sepolia.etherscan.io/address/0xAc486c6E6632af96C432f97857CA7643911885B0) |
+| `SolumASC` | Creditcoin CC3 testnet | [`0xe5c3c28dBDdd3AB3486aBa2c9AE42b2321D659FD`](https://creditcoin-testnet.blockscout.com/address/0xe5c3c28dBDdd3AB3486aBa2c9AE42b2321D659FD) |
 
 ## Repo layout
 
 ```
-contracts/source-chain/   PropertyDeed + PledgeVault (Sepolia, Foundry)
-contracts/creditcoin/     SolumASC (Creditcoin CC3 testnet, Foundry)
-worker/                   Readability worker — manual-trigger CLI (see below for why)
-backend/                  Cloudflare Worker: plain-language API, gasless relayer, SMS route
-sms-bridge/               SMS webhook + status-check handler, shared with backend/
-frontend/                 Static apply/status page (served by backend/)
-docs/attestcoin-integration.md   Full protocol integration write-up (required deliverable)
+contracts/source-chain/   PropertyDeed + PledgeVault — "Platform A" (Sepolia, Foundry)
+contracts/creditcoin/     SolumASC, the mortgage underwriter (Creditcoin CC3, Foundry)
+worker/                   Readability worker: proves a Sepolia pledge to SolumASC
+backend/                  Cloudflare Worker — API, gasless relayer, account/withdraw, SMS route
+sms-bridge/               SMS webhook + status-check handler, imported by backend/
+frontend/                 The web app (static, served by backend/)
+docs/attestcoin-integration.md   Protocol integration whitepaper
 ```
 
-## Why the worker is a manual CLI, not a 24/7 watcher
+## Run it yourself / integrate
 
-A persistent watcher is one more process that can silently stall while judges are watching a
-live demo. `worker/src/cli.ts` is run on cue instead — rehearsable, rerunnable if a testnet RPC
-hiccups. Only the *when* is manual; the cryptographic proof and on-chain verification are fully
-real either way.
+**Prerequisites:** [Foundry](https://getfoundry.sh/) (`foundryup --version v1.2.3`), Node.js 20+,
+a [Cloudflare account](https://dash.cloudflare.com) with `wrangler` logged in, Sepolia ETH, and
+CC3 testnet tCTC (Creditcoin Discord → `#token-faucet` → `/faucet address:<yours>`).
 
-## Status
+### 1. Deploy the contracts
 
-**Done and verified**
-- `PropertyDeed.sol` + `PledgeVault.sol` — deployed on Sepolia, tests passing, a real
-  `CollateralPledged` pledge transaction on-chain for the demo (deed #1, "Amara's rental").
-- `SolumASC.sol` — written against the real `@gluwa/asc-contracts` package (not just docs),
-  compiles clean with `via_ir`, source-contract-binding tests passing (rejects a spoofed
-  emitter, rejects an unregistered vault).
-- `worker/src/cli.ts` — full readability pipeline (wait for mining → wait for attestation →
-  fetch proof → submit `execute(...)`), mirroring the official `attestcoin-protocol-examples`
-  loan-flow worker.
-- `backend/` — plain-language apply/status API, mocked-OTP login, gasless per-user relayer
-  wallets, verified end-to-end locally (`wrangler dev`) against the login → apply flow.
-- `frontend/index.html` — themed, single-file, no framework; verified rendering and the full
-  sign-in → apply flow in-browser.
+```bash
+# Sepolia — Platform A
+cd contracts/source-chain
+cp .env.example .env   # fill in SEPOLIA_RPC_URL, DEPLOYER_PK
+./deploy.sh
 
-**Not done yet**
-- `SolumASC` deployment to Creditcoin CC3 testnet — blocked on the deployer wallet's tCTC
-  faucet claim (Discord `/faucet`); Sepolia side is fully live and waiting on it.
-- The live worker run proving the real Sepolia pledge tx to `SolumASC` (needs the above).
-- SMS status-check — needs a fresh sms-gate.app device/account (not the same one as a sibling
-  project); first thing cut if time runs out.
-- Repayment/equity-release lifecycle (`PaymentMade` → `recordPaymentAttestation`) — scoped as
-  an optional extension from the start, not required for a complete submission.
+# Creditcoin CC3 — Solum
+cd ../creditcoin
+cp .env.example .env   # fill in CC3_RPC_URL, DEPLOYER_PK
+./deploy.sh <SOURCE_CHAIN_PLEDGE_VAULT_ADDRESS from the step above>
+```
 
-## Disclosed simplifications
+Both scripts print (and save to `deployed.env`) the addresses you'll need next.
 
-See `docs/attestcoin-integration.md`'s closing section — gasless relayer custody, mocked email
-OTP, and concierge deed minting are all explicitly hackathon-scope simplifications, not
-production claims.
+### 2. Prove a pledge (the readability worker)
+
+```bash
+cd worker
+npm install
+cp .env.example .env   # fill in the RPC URLs, CREDITCOIN_WALLET_PRIVATE_KEY, SOLUM_ASC_CONTRACT_ADDRESS
+npm run attest -- --tx <sepoliaPledgeTxHash>
+```
+
+This waits for Creditcoin attestation, fetches a Merkle + continuity proof from the Attestcoin
+Proof Builder, and submits it on-chain — takes a few minutes.
+
+### 3. Run the app
+
+```bash
+cd backend
+npm install
+cp .dev.vars.example .dev.vars   # fill in SESSION_SECRET + CREDITCOIN_FUNDER_PRIVATE_KEY for local dev
+npm run dev                       # local dev server
+
+# For production:
+wrangler secret put SESSION_SECRET
+wrangler secret put CREDITCOIN_FUNDER_PRIVATE_KEY   # pays gas + disbursements for relayer wallets
+npm run deploy
+```
+
+Update `SOLUM_ASC_CONTRACT_ADDRESS` in `backend/wrangler.jsonc` to point at your own deployment.
+
+### API reference
+
+All endpoints are relative to the deployed Worker's origin.
+
+| Method | Path | Body / params | Notes |
+|---|---|---|---|
+| `POST` | `/api/login/start` | `{ email }` | Issues a code; emails it via Resend if configured, else returns `devCode` in the response |
+| `POST` | `/api/login/verify` | `{ email, otp }` | Sets a session cookie on success |
+| `POST` | `/api/apply` | `{ deedId, propertyValueUsd, loanAmount }` | Session required. Runs the underwriting check, disburses funds on approval |
+| `GET` | `/api/status/:applicationId` | — | Public, no session needed |
+| `GET` | `/api/my-applications` | — | Session required |
+| `GET` | `/api/account` | — | Session required. Returns relayer address + tCTC balance |
+| `POST` | `/api/withdraw` | `{ toAddress }` | Session required. Sweeps the balance (minus a gas reserve) to `toAddress` |
+| `POST` | `/sms/smsgate` | sms-gate.app webhook payload | `STATUS <id>` → the same plain-English lookup as `/api/status` |
+
+## Known limitations
+
+These are deliberate scope decisions for a testnet hackathon build, not bugs:
+
+- **Gasless relayer wallets are backend-custodied**, not ERC-4337 smart accounts — fine for a
+  demo, not for holding real value.
+- **Loan amounts and disbursements are illustrative**, not real currency — see the in-app FAQ
+  for the exact conversion used.
+- **Deed documents are matched by filename**, not real document/OCR verification, and minting a
+  deed is a concierge action rather than a real notarization process.
+- **Real email delivery only reaches the mail sender's own verified address** until a custom
+  domain is verified with the email provider; everyone else gets the on-screen fallback code.
+- **The readability worker is a manual CLI**, not a 24/7 watcher — deliberate, for predictable
+  demos; the cryptography itself is fully real either way.
+- **Attestcoin Writability was not used** — see the whitepaper for why.
