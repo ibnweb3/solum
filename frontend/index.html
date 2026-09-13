@@ -42,6 +42,29 @@
   .hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin:0 auto}
   @media (max-width:760px){.hero-grid{grid-template-columns:1fr}}
 
+  .profile-header{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .avatar{width:52px;height:52px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;
+    font:700 20px/1 "Playfair Display",Georgia,"Times New Roman",serif;color:#0a0a0b;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+  .profile-info{flex:1 1 160px;min-width:0}
+  .profile-email{font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .profile-address{font-size:11.5px;color:var(--dim);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .profile-stats{display:flex;gap:20px;flex:none}
+  .stat{display:flex;flex-direction:column;align-items:flex-end;min-width:56px}
+  .stat-value{font-size:16px;font-weight:700}
+  .stat-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+  .profile-header .ghost{margin-top:0;flex:none}
+  @media (max-width:560px){.profile-stats{gap:14px;order:3;width:100%;justify-content:flex-start;margin-top:4px}}
+
+  .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;margin-top:16px}
+  @media (max-width:760px){.dash-grid{grid-template-columns:1fr}}
+  .dash-col .card{margin:0 0 16px}
+  .dash-col .card:last-child{margin-bottom:0}
+
+  .icon-btn{margin-top:0!important;margin-left:auto;padding:4px 10px;font-size:11px;line-height:1.4;
+    border-radius:7px;background:transparent;border:1px solid var(--line);color:var(--dim);font-weight:600}
+  @media (hover:hover){.icon-btn:hover{border-color:var(--gold);color:var(--gold);transform:none;box-shadow:none}}
+
   header{padding:8px 0 22px}
   .brand{margin:0 0 6px;font-weight:800;line-height:1;letter-spacing:-.02em;color:var(--gold);
     font-family:"Playfair Display",Georgia,"Times New Roman",serif;font-size:clamp(40px,10vw,54px)}
@@ -271,54 +294,71 @@
     </div>
   </div>
 
-  <div class="stack" id="dashboardView" hidden>
-    <section class="card">
-      <div class="status-line"><span class="dot ok"></span><span>Signed in — here's your Solum account.</span></div>
-      <h2 style="margin-top:14px">Your account</h2>
-      <div class="status-line"><span class="muted">Address</span><span class="mono" id="acctAddress" style="font-size:12px"></span></div>
-      <div class="status-line"><span class="muted">Balance</span><span class="mono tnum" id="acctBalance"></span></div>
-      <label for="withdrawAddress">Withdraw to a wallet address you hold</label>
-      <input id="withdrawAddress" type="text" placeholder="0x...">
-      <button class="ghost" id="withdrawBtn">Withdraw</button>
-      <p class="error-text" id="withdrawError" hidden></p>
-      <div id="withdrawResult" hidden></div>
-    </section>
-
-    <section class="card" id="applyCard">
-      <h2>Apply for a mortgage</h2>
-      <p class="hint">Upload your property's title deed, or pick one below. Two samples are provided so anyone can try both outcomes:
-        <a href="deeds/amara-rental-deed.svg" download>Amara's Rental (pledged elsewhere)</a> ·
-        <a href="deeds/clean-deed.svg" download>Meridian Court (clean)</a>
-      </p>
-      <label for="deedFile">Title deed document</label>
-      <input id="deedFile" type="file" accept="image/svg+xml,.svg,application/pdf,image/*">
-      <p class="muted" id="deedFileHint">No file uploaded yet — select manually below, or upload one of the samples above.</p>
-      <label for="deed">Property</label>
-      <select id="deed">
-        <option value="1">Deed #1 — Amara's rental (pledged as collateral on another platform)</option>
-        <option value="2">Deed #2 — clean deed, no existing pledge</option>
-      </select>
-      <div class="row">
-        <div>
-          <label for="value">Home value</label>
-          <input id="value" type="number" min="1" value="500000" class="mono tnum">
-        </div>
-        <div>
-          <label for="loan">Loan amount</label>
-          <input id="loan" type="number" min="1" value="300000" class="mono tnum">
-        </div>
+  <div id="dashboardView" hidden>
+    <section class="card profile-header">
+      <div class="avatar" id="avatar" aria-hidden="true"></div>
+      <div class="profile-info">
+        <div class="profile-email" id="profileEmail"></div>
+        <div class="profile-address mono" id="profileAddressShort"></div>
       </div>
-      <button id="applyBtn">Apply</button>
-      <p class="error-text" id="applyError" hidden></p>
-      <div id="decision" hidden></div>
+      <div class="profile-stats">
+        <div class="stat"><span class="stat-value mono tnum" id="statBalance">—</span><span class="stat-label">tCTC balance</span></div>
+        <div class="stat"><span class="stat-value tnum" id="statApps">0</span><span class="stat-label">Applications</span></div>
+        <div class="stat"><span class="stat-value tnum" id="statActive">0</span><span class="stat-label">Active loans</span></div>
+      </div>
+      <button class="ghost" id="signOutBtn">Sign out</button>
     </section>
 
-    <section class="card">
-      <h2>Your applications</h2>
-      <div id="applicationsList" class="muted">No applications yet.</div>
-    </section>
+    <div class="dash-grid">
+      <div class="dash-col">
+        <section class="card">
+          <h2>Wallet</h2>
+          <div class="status-line"><span class="muted">Address</span><span class="mono" id="acctAddress" style="font-size:12px"></span><button class="icon-btn" id="copyAddressBtn" type="button">Copy</button></div>
+          <div class="status-line"><span class="muted">Balance</span><span class="mono tnum" id="acctBalance"></span></div>
+          <label for="withdrawAddress">Withdraw to a wallet address you hold</label>
+          <input id="withdrawAddress" type="text" placeholder="0x...">
+          <button class="ghost" id="withdrawBtn">Withdraw</button>
+          <p class="error-text" id="withdrawError" hidden></p>
+          <div id="withdrawResult" hidden></div>
+        </section>
 
-    <div style="text-align:center"><button class="ghost" id="signOutBtn">Sign out</button></div>
+        <section class="card" id="applyCard">
+          <h2>Apply for a mortgage</h2>
+          <p class="hint">Upload your property's title deed, or pick one below. Two samples are provided so anyone can try both outcomes:
+            <a href="deeds/amara-rental-deed.svg" download>Amara's Rental (pledged elsewhere)</a> ·
+            <a href="deeds/clean-deed.svg" download>Meridian Court (clean)</a>
+          </p>
+          <label for="deedFile">Title deed document</label>
+          <input id="deedFile" type="file" accept="image/svg+xml,.svg,application/pdf,image/*">
+          <p class="muted" id="deedFileHint">No file uploaded yet — select manually below, or upload one of the samples above.</p>
+          <label for="deed">Property</label>
+          <select id="deed">
+            <option value="1">Deed #1 — Amara's rental (pledged as collateral on another platform)</option>
+            <option value="2">Deed #2 — clean deed, no existing pledge</option>
+          </select>
+          <div class="row">
+            <div>
+              <label for="value">Home value</label>
+              <input id="value" type="number" min="1" value="500000" class="mono tnum">
+            </div>
+            <div>
+              <label for="loan">Loan amount</label>
+              <input id="loan" type="number" min="1" value="300000" class="mono tnum">
+            </div>
+          </div>
+          <button id="applyBtn">Apply</button>
+          <p class="error-text" id="applyError" hidden></p>
+          <div id="decision" hidden></div>
+        </section>
+      </div>
+
+      <div class="dash-col">
+        <section class="card">
+          <h2>Your applications</h2>
+          <div id="applicationsList" class="muted">No applications yet.</div>
+        </section>
+      </div>
+    </div>
   </div>
 
   <footer>Solum — built on the <a href="https://docs.attestcoin.org/" target="_blank" rel="noopener">Attestcoin Protocol</a> · Creditcoin CC3 testnet</footer>
@@ -381,6 +421,23 @@
   const $ = (id) => document.getElementById(id);
   const show = (el) => { el.hidden = false; };
   const hide = (el) => { el.hidden = true; };
+  let currentEmail = '';
+
+  // A deterministic, no-network "avatar": a hash of the email picks a hue, the first letter is
+  // the glyph. Same email always renders the same avatar, no image request, no external service.
+  function hashHue(str) {
+    let h = 0;
+    for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return h % 360;
+  }
+
+  function renderProfile(email) {
+    const hue = hashHue(email.trim().toLowerCase());
+    const avatar = $('avatar');
+    avatar.textContent = (email.trim()[0] || '?').toUpperCase();
+    avatar.style.background = `linear-gradient(135deg, hsl(${hue},72%,58%), hsl(${(hue + 40) % 360},72%,42%))`;
+    $('profileEmail').textContent = email;
+  }
 
   async function api(path, options) {
     const res = await fetch(path, {
@@ -421,6 +478,8 @@
     $('verifyBtn').disabled = true;
     try {
       await api('/api/login/verify', { method: 'POST', body: JSON.stringify({ email, otp }) });
+      currentEmail = email;
+      renderProfile(email);
       enterDashboard();
       await refreshDashboard();
     } catch (err) {
@@ -444,6 +503,7 @@
     show($('loginStep1'));
     $('email').value = '';
     $('otp').value = '';
+    currentEmail = '';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -554,6 +614,8 @@
       const account = await api('/api/account', { method: 'GET' });
       $('acctAddress').textContent = account.address;
       $('acctBalance').textContent = `${formatWei(account.balanceWei)} tCTC`;
+      $('profileAddressShort').textContent = `${account.address.slice(0, 6)}…${account.address.slice(-4)}`;
+      $('statBalance').textContent = formatWei(account.balanceWei);
     } catch {
       /* no relayer account yet — fine, address/balance just stay blank until the first apply */
     }
@@ -563,10 +625,28 @@
       $('applicationsList').innerHTML = applications.length
         ? applications.map(renderApplicationRow).join('')
         : '<p class="muted">No applications yet.</p>';
+      $('statApps').textContent = applications.length;
+      $('statActive').textContent = applications.filter((a) =>
+        a.status === 'Approved' && BigInt(a.repaidWei || '0') < BigInt(a.disbursedWei || '0')
+      ).length;
     } catch {
       /* leave whatever was there before */
     }
   }
+
+  $('copyAddressBtn').addEventListener('click', async () => {
+    const address = $('acctAddress').textContent;
+    if (!address) return;
+    const btn = $('copyAddressBtn');
+    try {
+      await navigator.clipboard.writeText(address);
+      const original = btn.textContent;
+      btn.textContent = 'Copied';
+      setTimeout(() => { btn.textContent = original; }, 1400);
+    } catch {
+      /* clipboard permission denied — the full address is already visible to select manually */
+    }
+  });
 
   $('applicationsList').addEventListener('click', async (e) => {
     const btn = e.target.closest('.repay-btn');
