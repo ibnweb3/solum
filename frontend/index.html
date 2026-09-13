@@ -58,8 +58,8 @@
     text-shadow:0 1px 3px rgba(0,0,0,.9),0 2px 18px rgba(0,0,0,.75)}
   .tagline .tw{display:inline-block}
   .tagline .tc{display:inline-block;opacity:0;transform:translateY(5px) scale(.4);
-    animation:typePop .32s cubic-bezier(.2,1.7,.4,1) forwards;
-    animation-delay:calc(var(--i) * 20ms)}
+    animation:typePop .4s cubic-bezier(.2,1.7,.4,1) forwards;
+    animation-delay:calc(var(--i) * 45ms)}
   @keyframes typePop{
     0%{opacity:0;transform:translateY(5px) scale(.4)}
     55%{opacity:1;transform:translateY(-2px) scale(1.22)}
@@ -322,7 +322,7 @@
     cursor.className = 'type-cursor';
     cursor.setAttribute('aria-hidden', 'true');
     tagline.appendChild(cursor);
-    setTimeout(() => cursor.classList.add('done'), i * 20 + 400);
+    setTimeout(() => cursor.classList.add('done'), i * 45 + 450);
   })();
 
   const $ = (id) => document.getElementById(id);
