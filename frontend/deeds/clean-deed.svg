@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+  <rect width="900" height="600" fill="#0b0b0d"/>
+  <rect x="18" y="18" width="864" height="564" fill="none" stroke="#e8a317" stroke-width="4"/>
+  <rect x="32" y="32" width="836" height="536" fill="none" stroke="#463714" stroke-width="1"/>
+
+  <text x="450" y="95" text-anchor="middle" fill="#e8a317" font-family="Georgia, 'Times New Roman', serif" font-size="38" font-weight="700">CERTIFICATE OF TITLE</text>
+  <text x="450" y="122" text-anchor="middle" fill="#8a8a94" font-family="Georgia, serif" font-size="14">Solum Demo Property Registry &#8212; Creditcoin CC3 Testnet</text>
+
+  <line x1="120" y1="145" x2="780" y2="145" stroke="#463714" stroke-width="1"/>
+
+  <text x="450" y="205" text-anchor="middle" fill="#e9e9ec" font-family="Georgia, serif" font-size="26" font-weight="700">Deed No. 2</text>
+  <text x="450" y="245" text-anchor="middle" fill="#e9e9ec" font-family="Georgia, serif" font-size="21">Meridian Court Residence</text>
+
+  <text x="450" y="290" text-anchor="middle" fill="#4ec98a" font-family="Georgia, serif" font-size="18" font-weight="700">STATUS: No liens or pledges on record</text>
+
+  <text x="100" y="360" fill="#8a8a94" font-family="Georgia, serif" font-size="14">Issued to: Demo Borrower</text>
+  <text x="100" y="385" fill="#8a8a94" font-family="Georgia, serif" font-size="14">Registry Reference: SOLUM-DEED-0002</text>
+  <text x="100" y="410" fill="#8a8a94" font-family="Georgia, serif" font-size="14">Source-chain registry: Ethereum Sepolia</text>
+
+  <g transform="translate(450 460) rotate(-22)">
+    <text text-anchor="middle" fill="#e8a317" opacity="0.16" font-family="Georgia, serif" font-size="64" font-weight="700">SPECIMEN</text>
+  </g>
+
+  <text x="450" y="555" text-anchor="middle" fill="#6b6b73" font-family="Georgia, serif" font-size="12">Demo document for BUIDL CTC 2026 Fall &#8212; not a real legal instrument.</text>
+  <text x="450" y="573" text-anchor="middle" fill="#6b6b73" font-family="Georgia, serif" font-size="12">Upload this file on the Solum apply form to select this property.</text>
+</svg>

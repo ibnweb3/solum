@@ -5,14 +5,19 @@
  *   POST /api/apply          {deedId, propertyValueUsd, loanAmount} -> plain-English decision
  *   GET  /api/status/:id     -> plain-English status (also used by the SMS bridge)
  *   GET  /api/my-applications -> the logged-in user's past applications
+ *   GET  /api/account        -> the logged-in user's relayer address + tCTC balance
+ *   POST /api/withdraw       {toAddress} -> sweeps the relayer balance (minus gas) to toAddress
  *   *    /sms/smsgate         -> SMS status-check webhook (Phase 4)
  *   *    (everything else)    -> static frontend (frontend/index.html)
  */
+import type { JsonRpcProvider } from "ethers";
 import { SessionRegistry } from "./state/SessionRegistry.ts";
 import { checkReadiness, type Env } from "./shared/env.ts";
 import { emailHash, generateOtp, readCookie, SESSION_COOKIE_NAME, signSession, verifySessionCookie } from "./auth/session.ts";
 import { getOrCreateRelayerWallet } from "./relayer/wallet.ts";
 import { submitMortgageApplication } from "./relayer/submit.ts";
+import { disburseLoanFunds } from "./relayer/disburse.ts";
+import { getRelayerAccount, withdrawRelayerFunds } from "./relayer/account.ts";
 import { lookupApplicationStatus } from "./status/lookup.ts";
 import { BadSignatureError, getSmsProvider } from "../../sms-bridge/provider.ts";
 import { handleStatusCommand } from "../../sms-bridge/statusHandler.ts";
@@ -36,6 +41,8 @@ export default {
       if (url.pathname === "/api/login/verify" && request.method === "POST") return handleLoginVerify(request, env);
       if (url.pathname === "/api/apply" && request.method === "POST") return handleApply(request, env);
       if (url.pathname === "/api/my-applications" && request.method === "GET") return handleMyApplications(request, env);
+      if (url.pathname === "/api/account" && request.method === "GET") return handleAccount(request, env);
+      if (url.pathname === "/api/withdraw" && request.method === "POST") return handleWithdraw(request, env);
 
       const statusMatch = url.pathname.match(/^\/api\/status\/(\d+)$/);
       if (statusMatch && request.method === "GET") {
@@ -117,8 +124,16 @@ async function handleApply(request: Request, env: Env): Promise<Response> {
   const registry = env.SessionRegistry.get(env.SessionRegistry.idFromName("global"));
   await registry.recordApplication(hash, result.applicationId, result.deedId);
 
+  // Illustrative only — SolumASC's loanAmount is a plain number, not real currency. This just
+  // makes an approval feel tangible instead of a status flag with nowhere for the money to go.
+  let disbursement: { txHash: string; amountWei: string } | null = null;
+  if (result.status === "Approved" && relayer.provider) {
+    const disbursed = await disburseLoanFunds(env, relayer.provider as JsonRpcProvider, relayer.address, loanAmount);
+    if (disbursed) disbursement = { txHash: disbursed.txHash, amountWei: disbursed.amountWei.toString() };
+  }
+
   const view = await lookupApplicationStatus(env, result.applicationId);
-  return json({ ...result, plainEnglish: view.plainEnglish });
+  return json({ ...result, plainEnglish: view.plainEnglish, disbursement });
 }
 
 async function handleMyApplications(request: Request, env: Env): Promise<Response> {
@@ -128,6 +143,32 @@ async function handleMyApplications(request: Request, env: Env): Promise<Respons
   const registry = env.SessionRegistry.get(env.SessionRegistry.idFromName("global"));
   const applications = await registry.listApplications(hash);
   return json({ applications });
+}
+
+// ── Account balance + withdraw ───────────────────────────────────────────────────────────────
+
+async function handleAccount(request: Request, env: Env): Promise<Response> {
+  const hash = await requireSession(request, env);
+  if (!hash) return json({ error: "not_logged_in" }, { status: 401 });
+
+  const account = await getRelayerAccount(env, hash);
+  if (!account) return json({ error: "no_account" }, { status: 404 });
+  return json({ address: account.address, balanceWei: account.balanceWei.toString() });
+}
+
+async function handleWithdraw(request: Request, env: Env): Promise<Response> {
+  const hash = await requireSession(request, env);
+  if (!hash) return json({ error: "not_logged_in" }, { status: 401 });
+
+  const { toAddress } = await request.json<{ toAddress?: string }>();
+  if (!toAddress) return json({ error: "missing_address" }, { status: 400 });
+
+  try {
+    const result = await withdrawRelayerFunds(env, hash, toAddress);
+    return json({ txHash: result.txHash, amountWei: result.amountWei.toString() });
+  } catch (err) {
+    return json({ error: (err as Error).message || "withdraw_failed" }, { status: 400 });
+  }
 }
 
 // ── SMS status-check (Phase 4) ───────────────────────────────────────────────────────────────

@@ -84,6 +84,9 @@
     padding:11px 12px;color:var(--text);font-size:15px;outline:none;
     transition:border-color .15s ease,box-shadow .15s ease}
   input:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(232,163,23,.16)}
+  input[type=file]{padding:8px}
+  input[type=file]::file-selector-button{appearance:none;border:0;border-radius:7px;padding:7px 12px;
+    margin-right:10px;background:var(--send-line);color:var(--gold);font-weight:600;font-size:13px;cursor:pointer}
 
   .row{display:flex;gap:10px}
   .row > *{flex:1}
@@ -205,7 +208,13 @@
   <div class="stack">
     <section class="card" id="applyCard" hidden>
       <h2>2. Apply for a mortgage</h2>
-      <p class="hint">Pick a property, tell us the value and how much you'd like to borrow.</p>
+      <p class="hint">Upload your property's title deed, or pick one below. Two samples are provided so anyone can try both outcomes:
+        <a href="deeds/amara-rental-deed.svg" download>Amara's Rental (pledged elsewhere)</a> ·
+        <a href="deeds/clean-deed.svg" download>Meridian Court (clean)</a>
+      </p>
+      <label for="deedFile">Title deed document</label>
+      <input id="deedFile" type="file" accept="image/svg+xml,.svg,application/pdf,image/*">
+      <p class="muted" id="deedFileHint">No file uploaded yet — select manually below, or upload one of the samples above.</p>
       <label for="deed">Property</label>
       <select id="deed">
         <option value="1">Deed #1 — Amara's rental (pledged as collateral on another platform)</option>
@@ -224,6 +233,17 @@
       <button id="applyBtn">Apply</button>
       <p class="error-text" id="applyError" hidden></p>
       <div id="decision" hidden></div>
+      <div id="accountPanel" hidden>
+        <h2 style="margin-top:20px">Your Solum account</h2>
+        <p class="hint">This is the account Solum created and funded for you when you signed in.</p>
+        <div class="status-line"><span class="muted">Address</span><span class="mono" id="acctAddress" style="font-size:12px"></span></div>
+        <div class="status-line"><span class="muted">Balance</span><span class="mono tnum" id="acctBalance"></span></div>
+        <label for="withdrawAddress">Withdraw to a wallet address you hold</label>
+        <input id="withdrawAddress" type="text" placeholder="0x...">
+        <button class="ghost" id="withdrawBtn">Withdraw</button>
+        <p class="error-text" id="withdrawError" hidden></p>
+        <div id="withdrawResult" hidden></div>
+      </div>
     </section>
 
     <section class="card">
@@ -258,6 +278,10 @@
         <div>
           <dt>Which chains does this run on?</dt>
           <dd>Ethereum Sepolia for the collateral-pledge registry, and Creditcoin's CC3 testnet for the mortgage decision itself — connected by the Attestcoin Protocol.</dd>
+        </div>
+        <div>
+          <dt>What actually happens to the loan money after approval?</dt>
+          <dd>An approved application disburses testnet tCTC to your Solum account — 1 tCTC per 100,000 of loan amount you entered, illustrative only. You can see the balance and withdraw it to any address you hold, so the loan isn't just a status flag.</dd>
         </div>
       </dl>
     </section>
@@ -377,6 +401,43 @@
     }
   });
 
+  // Formats a wei-string as a decimal tCTC string without losing precision to float rounding.
+  function formatWei(weiStr, decimals = 4) {
+    const wei = BigInt(weiStr);
+    const whole = wei / 10n ** 18n;
+    const frac = (wei % 10n ** 18n).toString().padStart(18, '0').slice(0, decimals);
+    return `${whole}.${frac}`;
+  }
+
+  // Uploading one of the two sample deed documents (see the download links above) auto-selects
+  // the matching property below — matched by filename, not real document parsing.
+  $('deedFile').addEventListener('change', () => {
+    const file = $('deedFile').files[0];
+    const hint = $('deedFileHint');
+    if (!file) return;
+    const name = file.name.toLowerCase();
+    if (name.includes('amara') || name.includes('pledged')) {
+      $('deed').value = '1';
+      hint.textContent = `Recognized "${file.name}" as Amara's Rental (Deed #1).`;
+    } else if (name.includes('clean') || name.includes('meridian')) {
+      $('deed').value = '2';
+      hint.textContent = `Recognized "${file.name}" as the clean deed (Deed #2).`;
+    } else {
+      hint.textContent = `Didn't recognize "${file.name}" — try one of the sample files above, or select the property manually below.`;
+    }
+  });
+
+  async function refreshAccount() {
+    try {
+      const account = await api('/api/account', { method: 'GET' });
+      $('acctAddress').textContent = account.address;
+      $('acctBalance').textContent = `${formatWei(account.balanceWei)} tCTC`;
+      show($('accountPanel'));
+    } catch {
+      /* no account yet — fine, panel just stays hidden */
+    }
+  }
+
   $('applyBtn').addEventListener('click', async () => {
     hide($('applyError'));
     const deedId = Number($('deed').value);
@@ -396,13 +457,38 @@
         <p class="headline">${approved ? 'Approved' : 'Declined'} — application #${result.applicationId}</p>
         <p>${result.plainEnglish}</p>
         <p class="tx muted">Verified on-chain, tx <span class="mono">${result.txHash.slice(0, 10)}…${result.txHash.slice(-6)}</span></p>
+        ${result.disbursement ? `<p class="tx muted">Loan disbursed: ${formatWei(result.disbursement.amountWei)} tCTC (illustrative demo amount — see FAQ)</p>` : ''}
       `;
       show(decision);
+      if (approved) await refreshAccount();
     } catch (err) {
       $('applyError').textContent = err.message === 'not_logged_in' ? 'Please sign in first.' : 'Something went wrong. Try again.';
       show($('applyError'));
     } finally {
       $('applyBtn').disabled = false;
+    }
+  });
+
+  $('withdrawBtn').addEventListener('click', async () => {
+    hide($('withdrawError'));
+    const toAddress = $('withdrawAddress').value.trim();
+    if (!toAddress) return;
+    $('withdrawBtn').disabled = true;
+    try {
+      const result = await api('/api/withdraw', { method: 'POST', body: JSON.stringify({ toAddress }) });
+      $('withdrawResult').innerHTML = `<p class="status-line"><span class="dot ok"></span>Sent ${formatWei(result.amountWei)} tCTC — tx <span class="mono">${result.txHash.slice(0, 10)}…${result.txHash.slice(-6)}</span></p>`;
+      show($('withdrawResult'));
+      await refreshAccount();
+    } catch (err) {
+      const messages = {
+        invalid_address: "That doesn't look like a valid address.",
+        insufficient_balance: 'Balance is too low to withdraw after gas.',
+        no_account: 'Apply for a mortgage first to create your account.',
+      };
+      $('withdrawError').textContent = messages[err.message] || 'Withdrawal failed. Try again.';
+      show($('withdrawError'));
+    } finally {
+      $('withdrawBtn').disabled = false;
     }
   });
 
